@@ -57,6 +57,25 @@ public:
 		Length++;
 		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
 	}
+	void push_back(vectorBit input)
+	{
+		int i1 = Length / 8;
+		int i2 = Length % 8;
+		for (int i = 0; i < input.Length;i++)
+		{
+			if (i2 == 0)
+			{
+				tData.push_back(0);
+			}
+			Length++;
+			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
+			if (i2++==7)
+			{
+				i2 = 0;
+				i1++;
+			}
+		}
+	}
 	int size()
 	{
 		return Length;
@@ -486,10 +505,26 @@ public:
 	//HEADerTYPE header;
 	//vectorBit Svector;
 	///根据inarray进行gama编码
+	static vectorBit EncodeSingle(int Length)
+	{
+		int i;
+		vectorBit outarray;
+		int size = log2(Length)+1;
+		for ( i = 0; i < size-1; i++)
+		{
+			outarray.push_back(0);
+		}
+		for ( i = 0; i < size ; i++)
+		{
+			int t = (Length >> (size - i-1)) & 0x01;
+			outarray.push_back(t);
+		}
+		return outarray;
+	}
 	static void Encode(vectorBit inarray, HEADerTYPE& header, vectorBit& Svector)
 	{
 
-		if (inarray.size() < 1)
+		if (inarray.size() < 1)	
 			return;
 		int compareNum = inarray[0];
 		vector<int> mount ;
@@ -498,18 +533,21 @@ public:
 		else 
 			header = RLG0;
 		int count = 1;
-		
 		for (int i = 1; i < inarray.size();i++)
 		{
 			if (inarray[i] == compareNum)
 				count++;
 			else
 			{
+				Svector.push_back(EncodeSingle(count));
+				//count = 1;
 				mount.push_back(count);
+				count = 1;
 				compareNum = inarray[i];
 			}
 		}
-		mount.push_back(count);
+		Svector.push_back(EncodeSingle(count));
+			mount.push_back(count);
 	}
 	///根据inarray进行gama译码
 	static void Decode(vectorBit inarray)
@@ -726,11 +764,11 @@ int main()
 	vectorBit v,v1;
 	v.push_back(1);
 	v.push_back(0);
-	v.push_back(1);
-	v.push_back(1);
 	v.push_back(0);
 	v.push_back(1);
 	v.push_back(1);
+	v.push_back(1);
+	v.push_back(0);
 	v.push_back(1);
 	GAMACode::HEADerTYPE head;
 	GAMACode::Encode(v, head, v1);
