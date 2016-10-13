@@ -11,7 +11,7 @@
 //#include<string.h>
 #include <string>
 #include <stdlib.h>
-
+#include <bitset>
 #include <atltrace.h>
 #if defined(WIN32)
 # define  TIMEB     _timeb
@@ -30,7 +30,8 @@ using namespace std;
 class vectorBit
 {
 public:
-	vector<byte> tData;
+	vector<bitset<8> > tData;
+	//vector<byte> tData;
 	int Length;
 	vectorBit()
 	{
@@ -42,7 +43,7 @@ public:
 		int i1 = ceil(float(length) / 8);
 		int i2 = length % 8;
 		Length = length;
-		vector<byte> temp(i1 , val1);
+		vector<bitset<8> > temp(i1, val1);
 		tData = temp;
 	}
 	void push_back(int input)
@@ -85,7 +86,7 @@ public:
 			return 0;
 		int i1 = i / 8;
 		int i2 = i % 8;
-		return (tData[i1] >> i2) & 0x01;
+		return (tData[i1][i2]);
 	}
 
 };
@@ -759,128 +760,85 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 
 	return ' ';
 }
-int main()
+//int main()
+//{
+//	vectorBit v,v1;
+//	v.push_back(1);
+//	v.push_back(0);
+//	v.push_back(0);
+//	v.push_back(1);
+//	v.push_back(1);
+//	v.push_back(1);
+//	v.push_back(0);
+//	v.push_back(1);
+//	GAMACode::HEADerTYPE head;
+//	GAMACode::Encode(v, head, v1);
+//}
+int option = 0;
+int _tmain(int argc, _TCHAR* argv[])
 {
-	vectorBit v,v1;
-	v.push_back(1);
-	v.push_back(0);
-	v.push_back(0);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(0);
-	v.push_back(1);
-	GAMACode::HEADerTYPE head;
-	GAMACode::Encode(v, head, v1);
-}
-//int _tmain(int argc, _TCHAR* argv[])
-//{
-//	FILE* fp;
-//	//vector<unsigned char> alphbetVector,BWTvector;
-//	unsigned char* alphbetList = new unsigned char[256];
-//	int* CTable = new int[CSize];
-//	int posOfend = 0;
-//	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-//	const char* strpath = "G:\\测试数据\\normal\\dna";
-//	if (fopen_s(&fp, strpath, "r"))
-//	{
-//		printf("The file %s is not exist.", strpath);
-//		return 0;
-//	}
-//	int err = fseek(fp, 0L, SEEK_END);
-//	long size = ftell(fp);
-//	fseek(fp, 0, SEEK_SET);
-//	size = size < SIZE ? size : SIZE;
-//	unsigned char* list = new unsigned char[size];
-//	long count = fread(list, sizeof(char), size, fp);
-//	//unsigned char* inarray = new int[size];
-//
-//	//unsigned char* list = new unsigned char[size];
-//	vector<unsigned char> Tvector;
-//	unsigned char* T2 = new unsigned char[size];
-//	const int length = size;
-//	unsigned char* BWT = new unsigned char[length];
-//	int* LF = new int[length];
-//	posOfend = constructBWT(list, BWT, length);
-//	constructC(list, CTable, length);
-//	computerLF(CTable, BWT, LF, length);
-//	ReconstructT(BWT, LF, posOfend, T2,length);
-//	int alCount = Calcdelt(list, alphbetList, length);
-//	quick_sort(alphbetList, 0, alCount-1);
-////	waveletTree* tree = new waveletTree(alCount);
-//	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
-//	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
-//	vector<unsigned char> BWTvector(BWT, BWT + length);
-//	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());	
-//	for (int i = 0; i < length; i++)
-//	{
-//		std::cout << BWT[i] << ",";
-//	}
-//	std::cout << endl; std::cout << endl;
-//
-//	for (int i = 0; i < length; i++)
-//	{
-//		std::cout << tree->Access(i) << ",";
-//	}
-//	std::cout << endl;
-//	std::cout << tree->Rank('A', 13);
-//	std::cout << endl;
-//	std::cout << tree->Select('C', 10);
-//	std::cout << endl;
-//	tree->destory(tree->getRoot(), NULL);
-//	return 0;
-//}
+	FILE* fp;
+	int length;
+	unsigned char* list;
+	//vector<unsigned char> alphbetVector,BWTvector;
+	unsigned char* alphbetList = new unsigned char[256];
+	int* CTable = new int[CSize];
+	int posOfend = 0;
+	if (option==0)
+	{ 
+		list = new unsigned char[21]{'a', 's', 'a', 'k', 'a', 'k', 'r', 'h', 'a', 'k', 'a', 'k', 'r', 'h', 'a', 'k', 'a', 's', 'a', 'k', '#'};
+		length = 21;
+	}
+	else 
+	{
+		const char* strpath = "G:\\测试数据\\normal\\dna";
+		if (fopen_s(&fp, strpath, "r"))
+		{
+			printf("The file %s is not exist.", strpath);
+			return 0;
+		}
+		int err = fseek(fp, 0L, SEEK_END);
+		long size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		size = size < SIZE ? size : SIZE;
+		list = new unsigned char[size];
+		long count = fread(list, sizeof(char), size, fp);
+		//unsigned char* inarray = new int[size];
+	}
 
-//int _tmain(int argc, _TCHAR* argv[])
-//{
-//	//TIME_T t1, t2, ti;
-//	FILE* fp;
-//	struct _timeb  ts1, ts2;
-//	//vector<unsigned char> alphbetVector, BWTvector;
-//	unsigned char* alphbetList = new unsigned char[256];
-//	int* CTable = new int[CSize];
-//	const char* strpath = "G:\\测试数据\\normal\\dna";
-//	if (fopen_s(&fp, strpath, "r"))
-//	{
-//		printf("The file %s is not exist.", strpath);
-//		return 0;
-//	}
-//	int err = fseek(fp, 0L, SEEK_END);
-//	long size = ftell(fp);
-//	size = size < SIZE ? size : SIZE;
-//	//unsigned char* inarray = new int[size];
-//	int* sa3 = new int[size];
-//	int* sa4 = new int[size];
-//	fseek(fp, 0, SEEK_SET);
-//	unsigned char* list = new unsigned char[size];
-//	long count = fread(list, sizeof(char), size, fp);
-//	ftime(&ts1);//开始计时
-//	da(list, sa3, size, 256);
-//	ftime(&ts2);//停止计时
-//	//t1 = (TIME_T)ts1.time * 1000 + ts1.millitm;
-//	//printf("t1=%lld\n", t1);
-//	//t2 = (TIME_T)ts2.time * 1000 + ts2.millitm;
-//	//ti = t2 - t1;//获取时间间隔，ms为单位的 10m 34.602ms;
-//	//printf("ti of  da =%lld\n", ti);
-//	ftime(&ts1);//开始计时
-//	//sufffixArrayCreate(list, sa4, size, 256);
-//	//int alCount = Calcdelt(T, alphbetList, size);
-//	int alCount = Calcdelt(list, alphbetList, size);
-//	//waveletTree* tree = new waveletTree(alCount);
-//	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
-//	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
-//	vector<unsigned char> BWTvector(list, list + size);
-//	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());
-//	ftime(&ts2);//停止计时
-//	//t1 = (TIME_T)ts1.time * 1000 + ts1.millitm;
-//	//printf("t1 of myda=%lld\n", t1);
-//	//t2 = (TIME_T)ts2.time * 1000 + ts2.millitm;
-//	//ti = t2 - t1;//获取时间间隔，ms为单位的 10m 34.602ms;
-////	printf("t1 of myda=%lld\n", ti);
-//	for (int i = 0; i < size; i++)
-//	{
-//		if (sa4[i] != sa3[i])
-//			printf("Wrong\n");
-//	}
-//	return 0;
-//}
+		//unsigned char* list = new unsigned char[size];
+		vector<unsigned char> Tvector;
+		unsigned char* T2 = new unsigned char[length];
+		//length = size;
+		unsigned char* BWT = new unsigned char[length];
+		int* LF = new int[length];
+	
+	posOfend = constructBWT(list, BWT, length);
+	constructC(list, CTable, length);
+	computerLF(CTable, BWT, LF, length);
+	ReconstructT(BWT, LF, posOfend, T2,length);
+	int alCount = Calcdelt(list, alphbetList, length);
+	quick_sort(alphbetList, 0, alCount-1);
+//	waveletTree* tree = new waveletTree(alCount);
+	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
+	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
+	vector<unsigned char> BWTvector(BWT, BWT + length);
+	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());	
+	for (int i = 0; i < length; i++)
+	{
+		std::cout << BWT[i] << ",";
+	}
+	std::cout << endl; std::cout << endl;
+
+	for (int i = 0; i < length; i++)
+	{
+		std::cout << tree->Access(i) << ",";
+	}
+	std::cout << endl;
+	std::cout << tree->Rank('A', 13);
+	std::cout << endl;
+	std::cout << tree->Select('C', 10);
+	std::cout << endl;
+	tree->destory(tree->getRoot(), NULL);
+	return 0;
+}
