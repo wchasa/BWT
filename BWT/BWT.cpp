@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <sys/timeb.h>
+//#include <sys/timeb.h>
 #include<stdio.h>
 //#include<string.h>
 #include <string>
@@ -42,7 +42,7 @@ vectorBit()
 	{
 		byte val1 = val == 0 ? 0x00 : 0xFF;
 		int i1 = ceil(float(length) / 8);
-		int i2 = length % 8;
+		//int i2 = length % 8;
 		Length = length;
 		vector<byte> temp(i1 , val1);
 		tData = temp;
@@ -78,7 +78,7 @@ vectorBit()
 			}
 		}
 	}
-	int size()
+	int size() const
 	{
 		return Length;
 	}
@@ -97,26 +97,27 @@ struct waveletTreeNodeByBit
 	map<unsigned char, int> allist;
 	char ch;
 	waveletTreeNodeByBit *l, *r, *p;
-	waveletTreeNodeByBit()
+	waveletTreeNodeByBit(): ch(0)
 	{
-		l = NULL;
-		r = NULL;
-		p = NULL;
+		l = nullptr;
+		r = nullptr;
+		p = nullptr;
 	}
+
 	waveletTreeNodeByBit(waveletTreeNodeByBit& parentNode) :waveletTreeNodeByBit()
 	{
 		p = &parentNode;
 	}
 	~waveletTreeNodeByBit()
 	{
-		if (l != NULL){
+		if (l != nullptr){
 			delete l;
-			l = NULL;
+			l = nullptr;
 		}
 		
-		if (r != NULL){
+		if (r != nullptr){
 			delete r;
-			r = NULL;
+			r = nullptr;
 		}
 	}
 };
@@ -130,15 +131,15 @@ public:
 	waveletTreeByBit(int alphbetCount) :waveletTreeByBit(){
 		//layer = (int)ceil(float(log2(alphbetCount))) + 1;
 	}
-	waveletTreeNodeByBit* getRoot()
+	waveletTreeNodeByBit* getRoot() const
 	{
 		return root;
 	}
 	//构造小波树
-	void CounstructWaveletTree(const vector<unsigned char> inarray, const vector<unsigned char> alphbetList, waveletTreeNodeByBit &wt)
+	void CounstructWaveletTree(const vector<unsigned char> inarray, const vector<unsigned char> alphbetList, waveletTreeNodeByBit &wt) const
 	{
 		//map<unsigned char, int> allist;
-		unsigned int i = 0;
+		unsigned int i;
 		vector<unsigned char> lCharArray, rCharArray;
 		typedef pair <unsigned char, int> In_Pair;
 		if (alphbetList.size()>1)
@@ -168,7 +169,7 @@ public:
 		}
 		else
 		{
-			vectorBit vector(((int)inarray.size()), '1');
+			vectorBit vector(static_cast<int>(inarray.size()), '1');
 			wt.tData = vector;
 			wt.ch = inarray[0];
 		}
@@ -176,7 +177,7 @@ public:
 
 	}
 	//字符字典中是否含有字符c。
-	bool ContainChar(const map<unsigned char, int>& allist, unsigned char c)
+	static bool ContainChar(const map<unsigned char, int>& allist, unsigned char c)
 	{
 		if (allist.find(c) == allist.end())
 			return false;
@@ -184,7 +185,7 @@ public:
 			return true;
 	}
 	//返回值是BWT[pos]处的字符
-	unsigned char Access(const int& pos)
+	unsigned char Access(const int& pos) const
 	{
 //		unsigned char  ch;
 		int ipos = pos;
@@ -194,7 +195,7 @@ public:
 			if (nodetemp->tData[ipos] == 0)
 			{
 				ipos = ipos - rank1(nodetemp->tData, ipos);
-				if (nodetemp->l != NULL)
+				if (nodetemp->l != nullptr)
 					nodetemp = nodetemp->l;
 				else
 					break;
@@ -202,7 +203,7 @@ public:
 			else
 			{
 				ipos = rank1(nodetemp->tData, ipos);
-				if (nodetemp->r != NULL)
+				if (nodetemp->r != nullptr)
 					nodetemp = nodetemp->r;
 				else
 					break;
@@ -212,18 +213,18 @@ public:
 		return nodetemp->ch;
 	}
 	///前pos个字符串中字符c的个数
-	int Rank(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/)
+	int Rank(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/) const
 	{
 		waveletTreeNodeByBit* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
-		int Divedepos = 0;
-		int i = 0;
+		//int Divedepos;
+		//auto i = 0;
 		int ipos = pos;
 		typedef pair <unsigned char, int> In_Pair;
-		while (nodetemp->l != NULL)
+		while (nodetemp->l != nullptr)
 		{
-			Divedepos = i;
+			//Divedepos = i;
 			if (nodetemp->allist[c] == 0)
 			{
 				ipos = ipos - rank1(nodetemp->tData, ipos);
@@ -241,15 +242,15 @@ public:
 
 
 
-	int Select(const unsigned char c, const int& pos)
+	int Select(const unsigned char c, const int& pos) const
 	{
-		int count = 0;
+		int count;
 		int postCur = 0;
 		int postPre = pos;
 		waveletTreeNodeByBit* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
-		while (nodetemp->l != NULL)
+		while (nodetemp->l != nullptr)
 		{
 			if (nodetemp->allist[c] == 0)
 				nodetemp = nodetemp->l;
@@ -258,7 +259,7 @@ public:
 		}
 		postPre = nodetemp->tData.size() < postPre ? nodetemp->tData.size() : postPre;
 
-		while (nodetemp->p != NULL)
+		while (nodetemp->p != nullptr)
 		{
 			nodetemp = nodetemp->p;
 			postCur = 0;
@@ -273,7 +274,8 @@ public:
 		}
 		return postCur - 1;
 	}
-	int rank1(vectorBit L, int pos)
+
+	static int rank1(vectorBit L, int pos)
 	{
 		int icount = 0;
 		for (int i = 0; i < (pos<L.size() ? pos : L.size()); i++)
@@ -289,20 +291,20 @@ public:
 		if (!child) return;
 		destory(child->l, child);
 		destory(child->r, child);
-		if (parent == NULL){
-			root = NULL;
+		if (parent == nullptr){
+			root = nullptr;
 			delete child;
-			child = NULL;
+			//child = nullptr;
 		}
 		else if (parent->l == child){
-			parent->l = NULL;
+			parent->l = nullptr;
 			delete child;
-			child = NULL;
+			//child = nullptr;
 		}
 		else{
-			parent->r = NULL;
+			parent->r = nullptr;
 			delete child;
-			child = NULL;
+			//child = nullptr;
 		}
 	}
 	//void ~waveletTreeByBit()
@@ -319,12 +321,13 @@ struct waveletTreeNode
 	map<unsigned char, int> allist;
 	char ch;
 	waveletTreeNode *l,*r,*p;
-	waveletTreeNode()
+	waveletTreeNode(): ch(0)
 	{
-		l = NULL;
-		r = NULL;
-		p = NULL;
+		l = nullptr;
+		r = nullptr;
+		p = nullptr;
 	}
+
 	waveletTreeNode(waveletTreeNode& parentNode) :waveletTreeNode()
 	{
 
@@ -341,15 +344,15 @@ public:
 	waveletTree(int alphbetCount) :waveletTree(){
 	//layer = (int)ceil(float(log2(alphbetCount))) + 1;
 	}
-	waveletTreeNode* getRoot()
+	waveletTreeNode* getRoot() const
 	{
 		return root;
 	}
 	//构造小波树
-	void CounstructWaveletTree(const vector<unsigned char> inarray,const vector<unsigned char> alphbetList, waveletTreeNode &wt)
+	void CounstructWaveletTree(const vector<unsigned char> inarray,const vector<unsigned char> alphbetList, waveletTreeNode &wt) const
 	{
 		//map<unsigned char, int> allist;
-		unsigned int i = 0;
+		unsigned int i;
 		vector<unsigned char> lCharArray, rCharArray;
 		typedef pair <unsigned char, int> In_Pair;
 		if (alphbetList.size()>1)
@@ -387,7 +390,7 @@ public:
 
 	}
 	//字符字典中是否含有字符c。
-	bool ContainChar(const map<unsigned char, int>& allist, unsigned char c)
+	static bool ContainChar(const map<unsigned char, int>& allist, unsigned char c)
 	{
 		if (allist.find(c) == allist.end())
 			return false;
@@ -395,9 +398,9 @@ public:
 			return true;
 	}
 	//返回值是BWT[pos]处的字符
-	unsigned char Access(const int& pos)
+	unsigned char Access(const int& pos) const
 	{
-		unsigned char  ch;
+	//	unsigned char  ch;
 		int ipos = pos;
 		waveletTreeNode* nodetemp = root;
 		while (true)
@@ -405,7 +408,7 @@ public:
 			if (nodetemp->tData[ipos] == 0)
 			{
 				ipos = ipos - rank1(nodetemp->tData, ipos);
-				if (nodetemp->l!=NULL)
+				if (nodetemp->l!= nullptr)
 					nodetemp = nodetemp->l;
 				else
 					break;
@@ -413,7 +416,7 @@ public:
 			else
 			{
 				ipos = rank1(nodetemp->tData, ipos);
-				if (nodetemp->r != NULL)
+				if (nodetemp->r != nullptr)
 					nodetemp = nodetemp->r;
 				else
 					break;				
@@ -423,18 +426,16 @@ public:
 		return nodetemp->ch;
 	}
 	///前pos个字符串中字符c的个数
-	int Rank(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/)
+	int Rank(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/) const
 	{
 		waveletTreeNode* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
-		int Divedepos = 0;
-		int i = 0;
+	
 		int ipos = pos;
 		typedef pair <unsigned char, int> In_Pair;
-		while (nodetemp->l != NULL)
+		while (nodetemp->l != nullptr)
 		{
-			Divedepos = i;
 			if (nodetemp->allist[c] == 0)
 			{
 				ipos = ipos - rank1(nodetemp->tData, ipos);
@@ -452,15 +453,15 @@ public:
 
 	
 	
-	int Select(const unsigned char c, const int& pos)
+	int Select(const unsigned char c, const int& pos) const
 	{
-		int count = 0;
+		int count;
 		int postCur = 0;
 		int postPre = pos;
 		waveletTreeNode* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
-		while (nodetemp->l!=NULL)
+		while (nodetemp->l!= nullptr)
 		{
 			if (nodetemp->allist[c] == 0)
 				nodetemp = nodetemp->l;
@@ -469,7 +470,7 @@ public:
 		}
 		postPre = nodetemp->tData.size() < postPre ? nodetemp->tData.size() : postPre;
 		
-		while (nodetemp->p != NULL)
+		while (nodetemp->p != nullptr)
 		{
 			nodetemp = nodetemp->p;
 			postCur = 0;
@@ -484,7 +485,8 @@ public:
 		}
 		return postCur-1;
 	}
-	int rank1(vector<int> L, int pos)
+
+	static int rank1(vector<int> L, int pos)
 	{
 		int icount = 0;
 		for (int i = 0; i < (pos<L.size() ? pos : L.size()); i++)
@@ -574,9 +576,13 @@ public:
 			int compareNum = 0;
 			for (int i = 0; i < inarray.size();)
 			{
-				if (inarray[0] == compareNum)
+				if (inarray[i] == compareNum)
 					compareNum++;
-				//else 
+				else{
+					//todo wodo
+					int mount = 0;
+
+				}
 					
 
 			}
@@ -587,6 +593,7 @@ public:
 		case HEADERTYPE::ALL1:
 			Outvector = *(new vectorBit(length, 1));
 			break;
+		default: break;
 		}
 	}
 	///inarray为s
@@ -732,7 +739,7 @@ void computerLF(int* C,unsigned char* L,int* LF,int length)
 }
 int constructBWT(unsigned char*T, vector<unsigned char> *L, int length)
 {
-	int pos = 0;
+//	int pos = 0;
 	int posofend = 0;
 	int* sa = new int[length];
 	da(T, sa, length, 256);
@@ -750,7 +757,7 @@ int constructBWT(unsigned char*T, vector<unsigned char> *L, int length)
 }
 int constructBWT(unsigned char*T, unsigned char*L,int length)
 {
-	int pos = 0;
+//	int pos = 0;
 	int posofend = 0;
 	int* sa = new int[length];
 	da(T, sa, length, 256);
@@ -769,7 +776,7 @@ int constructBWT(unsigned char*T, unsigned char*L,int length)
 }
 void constructC(unsigned char*T, int* CTable, int length)
 {
-	int i = 0;
+	int i;
 	memset(CTable, 0, CSize * sizeof(int));
 	for ( i = 0; i < length; i++)
 	{
