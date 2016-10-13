@@ -32,9 +32,8 @@ class vectorBit
 private:
 	vector<byte> tData;
 	int Length;
-	
-	public:
-vectorBit()
+public:
+	vectorBit()
 	{
 		Length = 0;
 	}
@@ -58,6 +57,11 @@ vectorBit()
 		}
 		Length++;
 		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
+	}
+	void push_back(int count,bool value)
+	{
+		for (int i = 0; i < count; i++)
+			this->push_back(value);
 	}
 	void push_back(vectorBit input)
 	{
@@ -509,99 +513,128 @@ public:
 	//HEADERTYPE header;
 	//vectorBit Svector;
 	///根据inarray进行gama编码
-	static vectorBit EncodeSingle(int Length)
-	{
-		int i;
-		vectorBit outarray;
-		int size = log2(Length)+1;
-		for ( i = 0; i < size-1; i++)
-		{
-			outarray.push_back(0);
-		}
-		for ( i = 0; i < size ; i++)
-		{
-			int t = (Length >> (size - i-1)) & 0x01;
-			outarray.push_back(t);
-		}
-		return outarray;
-	}
-	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
-	{
-		if (inarray.size() < 1)
-			return;
-		int compareNum = inarray[0];
-		//vector<int> mount;
-		if (compareNum == 1)
-			header = RLG1;
-		else
-			header = RLG0;
-		int count = 1;
-		for (int i = 1; i < inarray.size(); i++)
-		{
-			if (inarray[i] == compareNum)
-				count++;
-			else{
-				Outvector.push_back(EncodeSingle(count));
-				//count = 1;
-			//	mount.push_back(count);
-				count = 1;
-				compareNum = inarray[i];
-			}
-			if (inarray.size() < Outvector.size()){
-				header = Plain;
-				break;
-			}
-		}
-		if (count == inarray.size()){
-			header = header == RLG1 ? ALL1 : ALL0;
-			return;
-		}
-		Outvector.push_back(EncodeSingle(count));
-		//mount.push_back(count);
-		if (inarray.size() < Outvector.size())
-			header = Plain;
-	}
+	static vectorBit EncodeSingle(int Length);
+	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
 	///根据inarray进行gama译码
 	//	static void DecodeSingle()
-	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector,int length)
-	{
-		switch (header)
-		{
-		case HEADERTYPE::Plain:
-			Outvector = inarray;
-			break;
-		case HEADERTYPE::RLG0:
-		case HEADERTYPE::RLG1:
-			int count0=0;
-			int compareNum = 0;
-			for (int i = 0; i < inarray.size();)
-			{
-				if (inarray[i] == compareNum)
-					compareNum++;
-				else{
-					//todo wodo
-					int mount = 0;
-
-				}
-					
-
-			}
-			break;
-		case HEADERTYPE::ALL0:
-			Outvector = *(new vectorBit(length, 0));
-			break;
-		case HEADERTYPE::ALL1:
-			Outvector = *(new vectorBit(length, 1));
-			break;
-		default: break;
-		}
-	}
+	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
 	///inarray为s
 	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head,int loffset)
 	{
 		
 	}
 };
+
+vectorBit GAMACode::EncodeSingle(int Length)
+{
+	int i;
+	vectorBit outarray;
+	int size = log2(Length) + 1;
+	for (i = 0; i < size - 1; i++)
+	{
+		outarray.push_back(0);
+	}
+	for (i = 0; i < size; i++)
+	{
+		int t = (Length >> (size - i - 1)) & 0x01;
+		outarray.push_back(t);
+	}
+	return outarray;
+}
+
+void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
+{
+	if (inarray.size() < 1)
+		return;
+	int compareNum = inarray[0];
+	//vector<int> mount;
+	if (compareNum == 1)
+		header = RLG1;
+	else
+		header = RLG0;
+	int count = 1;
+	for (int i = 1; i < inarray.size(); i++)
+	{
+		if (inarray[i] == compareNum)
+			count++;
+		else
+		{
+			Outvector.push_back(EncodeSingle(count));
+			//count = 1;
+			//	mount.push_back(count);
+			count = 1;
+			compareNum = inarray[i];
+		}
+		if (inarray.size() < Outvector.size())
+		{
+			header = Plain;
+			break;
+		}
+	}
+	if (count == inarray.size())
+	{
+		header = header == RLG1 ? ALL1 : ALL0;
+		return;
+	}
+	Outvector.push_back(EncodeSingle(count));
+	//mount.push_back(count);
+	if (inarray.size() < Outvector.size())
+		header = Plain;
+}
+
+/**
+ * \brief 
+ * \param inarray 
+ * \param header 
+ * \param Outvector 
+ * \param length 
+ */
+void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length)
+{
+	bool bval;
+	//const int compareNum =0;
+	int count0 = 0;
+	switch (header)
+	{
+	case HEADERTYPE::Plain:
+		Outvector = inarray;
+		break;
+	case HEADERTYPE::RLG0:
+	case HEADERTYPE::RLG1:
+		//int count0 = 0;
+		bval = HEADERTYPE::RLG0 == header ? false : true;
+		for (int i = 0; i < inarray.size(); )
+		{
+			if (inarray[i++] == 0)
+				count0++;
+			else
+			{
+				//todo wodo
+				count0++;
+				int mount = 1;
+				AtlTrace("count0 = %d,", count0);
+				for (int j = 0; j < count0-1 ; j++)
+				{
+					AtlTrace("%d,",inarray[i]);
+					mount = (mount << 1) + inarray[i++];
+				}
+				AtlTrace("mount = %d\n", mount);
+				Outvector.push_back(mount, bval);
+				bval = bval ? false: true;
+				count0 = 0;
+			}
+		}
+		break;
+	case HEADERTYPE::ALL0:
+		Outvector = *(new vectorBit(length, 0));
+		break;
+	case HEADERTYPE::ALL1:
+		Outvector = *(new vectorBit(length, 1));
+		break;
+	default: break;
+	}
+}
+
 class waveletTreeNodeByBit_C :waveletTreeNodeByBit
 {
 	
@@ -803,7 +836,8 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 }
 int main()
 {
-	vectorBit v,v1;
+	//todo mainpos
+	vectorBit v,v1,v2;
 	v.push_back(0);
 	v.push_back(1);
 	v.push_back(1);
@@ -812,8 +846,13 @@ int main()
 	v.push_back(1);
 	v.push_back(1);
 	v.push_back(1);
+	v.push_back(1);
+	v.push_back(1);
+	v.push_back(0);
+	v.push_back(0); 
 	GAMACode::HEADERTYPE head;
 	GAMACode::Encode(v, head, v1);
+	GAMACode::Decode(v1, head, v2,12);
 }
 //int _tmain(int argc, _TCHAR* argv[])
 //{
