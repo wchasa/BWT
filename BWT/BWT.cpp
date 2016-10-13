@@ -29,10 +29,12 @@ using namespace std;
 
 class vectorBit
 {
-public:
+private:
 	vector<byte> tData;
 	int Length;
-	vectorBit()
+	
+	public:
+vectorBit()
 	{
 		Length = 0;
 	}
@@ -184,7 +186,7 @@ public:
 	//返回值是BWT[pos]处的字符
 	unsigned char Access(const int& pos)
 	{
-		unsigned char  ch;
+//		unsigned char  ch;
 		int ipos = pos;
 		waveletTreeNodeByBit* nodetemp = root;
 		while (true)
@@ -501,8 +503,8 @@ public:
 class GAMACode
 {
 public:
-	enum HEADerTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
-	//HEADerTYPE header;
+	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
+	//HEADERTYPE header;
 	//vectorBit Svector;
 	///根据inarray进行gama编码
 	static vectorBit EncodeSingle(int Length)
@@ -521,41 +523,74 @@ public:
 		}
 		return outarray;
 	}
-	static void Encode(vectorBit inarray, HEADerTYPE& header, vectorBit& Svector)
+	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
 	{
-
-		if (inarray.size() < 1)	
+		if (inarray.size() < 1)
 			return;
 		int compareNum = inarray[0];
-		vector<int> mount ;
+		//vector<int> mount;
 		if (compareNum == 1)
 			header = RLG1;
-		else 
+		else
 			header = RLG0;
 		int count = 1;
-		for (int i = 1; i < inarray.size();i++)
+		for (int i = 1; i < inarray.size(); i++)
 		{
 			if (inarray[i] == compareNum)
 				count++;
-			else
-			{
-				Svector.push_back(EncodeSingle(count));
+			else{
+				Outvector.push_back(EncodeSingle(count));
 				//count = 1;
-				mount.push_back(count);
+			//	mount.push_back(count);
 				count = 1;
 				compareNum = inarray[i];
 			}
+			if (inarray.size() < Outvector.size()){
+				header = Plain;
+				break;
+			}
 		}
-		Svector.push_back(EncodeSingle(count));
-			mount.push_back(count);
+		if (count == inarray.size()){
+			header = header == RLG1 ? ALL1 : ALL0;
+			return;
+		}
+		Outvector.push_back(EncodeSingle(count));
+		//mount.push_back(count);
+		if (inarray.size() < Outvector.size())
+			header = Plain;
 	}
 	///根据inarray进行gama译码
-	static void Decode(vectorBit inarray)
+	//	static void DecodeSingle()
+	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector,int length)
 	{
-		
+		switch (header)
+		{
+		case HEADERTYPE::Plain:
+			Outvector = inarray;
+			break;
+		case HEADERTYPE::RLG0:
+		case HEADERTYPE::RLG1:
+			int count0=0;
+			int compareNum = 0;
+			for (int i = 0; i < inarray.size();)
+			{
+				if (inarray[0] == compareNum)
+					compareNum++;
+				//else 
+					
+
+			}
+			break;
+		case HEADERTYPE::ALL0:
+			Outvector = *(new vectorBit(length, 0));
+			break;
+		case HEADERTYPE::ALL1:
+			Outvector = *(new vectorBit(length, 1));
+			break;
+		}
 	}
 	///inarray为s
-	static void Rank(vectorBit inarray, int offset, HEADerTYPE Head,int loffset)
+	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head,int loffset)
 	{
 		
 	}
@@ -762,15 +797,15 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 int main()
 {
 	vectorBit v,v1;
-	v.push_back(1);
-	v.push_back(0);
 	v.push_back(0);
 	v.push_back(1);
 	v.push_back(1);
 	v.push_back(1);
-	v.push_back(0);
 	v.push_back(1);
-	GAMACode::HEADerTYPE head;
+	v.push_back(1);
+	v.push_back(1);
+	v.push_back(1);
+	GAMACode::HEADERTYPE head;
 	GAMACode::Encode(v, head, v1);
 }
 //int _tmain(int argc, _TCHAR* argv[])
