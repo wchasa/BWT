@@ -2,17 +2,8 @@
 //
 
 #include "stdafx.h"
-#include "math.h"
-#include <vector>
-#include <map>
-#include <iostream>
-//#include <sys/timeb.h>
-#include<stdio.h>
-//#include<string.h>
-#include <string>
-#include <stdlib.h>
+#include "CreateData.cpp"
 
-#include <atltrace.h>
 #if defined(WIN32)
 # define  TIMEB     _timeb
 # define  ftime     _ftime64_s
@@ -21,8 +12,7 @@ typedef __int64 TIME_T;
 #define TIMEB timeb
 typedef long long TIME_T;
 #endif
-#define setbit(x,y) x|=(1<<y) //将X的第Y位置1
-#define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
+
 #define CSize 257
 #define SIZE 100
 using namespace std;
@@ -50,7 +40,8 @@ public:
 	}
 
 };
-template<class Tdata>
+
+template<class Indata, class Tdata>
 class Tree
 {
 private:
@@ -64,115 +55,33 @@ public:
 	{
 		return root;
 	}
-	void CounstructWaveletTree(const vector<unsigned char> inarray, const vector<unsigned char> alphbetList, waveletTreeNodeByBit &wt) const
+	void CounstructWaveletTree(const Indata inarray, Node<Tdata> &wt, CreateData<Indata, Tdata>* cdcalss) const
 	{
+		
 		//map<unsigned char, int> allist;
 		unsigned int i;
-		vector<unsigned char> lCharArray, rCharArray;
+		Indata lCharArray, rCharArray;
+		Tdata currentDate;
 		typedef pair <unsigned char, int> In_Pair;
-		if (alphbetList.size()>1)
+		if (inarray!=0)
 		{
-			float countlevel = (float(alphbetList.size()) / 2);
-			for (i = 0; i < countlevel; i++)
-				wt.allist.insert(In_Pair(alphbetList[i], 0));
-			vector <unsigned char> lalphbetList(alphbetList.begin(), alphbetList.begin() + i);
-			vector <unsigned char> ralphbetList(alphbetList.begin() + i, alphbetList.end());
-			for (; i < alphbetList.size(); i++)
-				wt.allist.insert(In_Pair(alphbetList[i], 1));
-			for (i = 0; i < inarray.size(); i++)
-				if (wt.allist[inarray[i]] == 0)
-				{
-				wt.tData.push_back(0);
-				lCharArray.push_back(inarray[i]);
-				}
-				else
-				{
-					wt.tData.push_back(1);
-					rCharArray.push_back(inarray[i]);
-				}
+			
 			wt.l = new waveletTreeNodeByBit(wt);
 			wt.r = new waveletTreeNodeByBit(wt);
-			CounstructWaveletTree(lCharArray, lalphbetList, *wt.l);
-			CounstructWaveletTree(rCharArray, ralphbetList, *wt.r);
+			cdcalss->Create(inarray, currentDate, lCharArray, rCharArray);
+			wt.data = currentDate;
+			CounstructWaveletTree(lCharArray, *wt.l, cdcalss);
+			CounstructWaveletTree(rCharArray, *wt.r, cdcalss);
 		}
 		else
 		{
 			vectorBit vector(static_cast<int>(inarray.size()), '1');
-			wt.tData = vector;
+			wt.data = vector;
 			wt.ch = inarray[0];
 		}
-
-
 	}
 };
-class vectorBit
-{
-private:
-	vector<byte> tData;
-	int Length;
-public:
-	vectorBit()
-	{
-		Length = 0;
-	}
-	vectorBit(int length, byte val) :vectorBit()
-	{
-		byte val1 = val == 0 ? 0x00 : 0xFF;
-		int i1 = ceil(float(length) / 8);
-		//int i2 = length % 8;
-		Length = length;
-		vector<byte> temp(i1 , val1);
-		tData = temp;
-	}
-	void push_back(int input)
-	{
-		
-		int i1 = Length / 8;
-		int i2 = Length % 8;
-		if (i2==0)
-		{
-			tData.push_back(0);
-		}
-		Length++;
-		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-	}
-	void push_back(int count,bool value)
-	{
-		for (int i = 0; i < count; i++)
-			this->push_back(value);
-	}
-	void push_back(vectorBit input)
-	{
-		int i1 = Length / 8;
-		int i2 = Length % 8;
-		for (int i = 0; i < input.Length;i++)
-		{
-			if (i2 == 0)
-			{
-				tData.push_back(0);
-			}
-			Length++;
-			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-			if (i2++==7)
-			{
-				i2 = 0;
-				i1++;
-			}
-		}
-	}
-	int size() const
-	{
-		return Length;
-	}
-	int vectorBit::operator[](int i){
-		if (i < 0 || i >= Length)
-			return 0;
-		int i1 = i / 8;
-		int i2 = i % 8;
-		return (tData[i1] >> i2) & 0x01;
-	}
 
-};
 struct waveletTreeNodeByBit
 {
 	vectorBit tData;
@@ -912,6 +821,7 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 
 	return ' ';
 }
+
 int main()
 {
 	//todo mainpos
