@@ -26,7 +26,34 @@ typedef long long TIME_T;
 #define CSize 257
 #define SIZE 100
 using namespace std;
+template <class nodeData>
+class  Node
+{
+public:
+	nodeData tData;
+	//map<unsigned char, int> allist;
+	char ch;
+	Node *l, *r, *p;
+	Node() 
+	{
+		l = nullptr;
+		r = nullptr;
+		p = nullptr;
+	}
+	Node(Node& parentNode) :Node()
+	{
+		p = &parentNode;
+	}
 
+	Node(nodeData inData, Node& parentNode) :Node(Node& parentNode)
+	{
+		inData = tData;
+	}
+	nodeData GettData()
+	{
+		return  tData;
+	}
+};
 class vectorBit
 {
 private:
@@ -95,36 +122,72 @@ public:
 	}
 
 };
-struct waveletTreeNodeByBit
+class bitData
 {
+private:
 	vectorBit tData;
 	map<unsigned char, int> allist;
 	char ch;
-	waveletTreeNodeByBit *l, *r, *p;
-	waveletTreeNodeByBit(): ch(0)
+public:
+	void SetChar(char inchar)
 	{
-		l = nullptr;
-		r = nullptr;
-		p = nullptr;
+		ch = inchar;
+	 }
+	char GetChar() const
+	{
+		return ch;
 	}
-
-	waveletTreeNodeByBit(waveletTreeNodeByBit& parentNode) :waveletTreeNodeByBit()
+	void SetAlphaMap(map<unsigned char, int>& inmap)
 	{
-		p = &parentNode;
+		allist = inmap;
 	}
-	~waveletTreeNodeByBit()
+	map<unsigned char, int> GetAlphaMap() const
 	{
-		if (l != nullptr){
-			delete l;
-			l = nullptr;
-		}
-		
-		if (r != nullptr){
-			delete r;
-			r = nullptr;
-		}
+		return allist;
+	}
+	void SetvectorBit(vectorBit invector)
+	{
+		tData = invector;
+	}
+	vectorBit GetVectorBit() const
+	{
+		return  tData;
 	}
 };
+class waveletTreeNodeByBit :Node<bitData>
+{
+	
+};
+//struct waveletTreeNodeByBit
+//{
+//	vectorBit tData;
+//	map<unsigned char, int> allist;
+//	char ch;
+//	waveletTreeNodeByBit *l, *r, *p;
+//	waveletTreeNodeByBit(): ch(0)
+//	{
+//		l = nullptr;
+//		r = nullptr;
+//		p = nullptr;
+//	}
+//
+//	waveletTreeNodeByBit(waveletTreeNodeByBit& parentNode) :waveletTreeNodeByBit()
+//	{
+//		p = &parentNode;
+//	}
+//	~waveletTreeNodeByBit()
+//	{
+//		if (l != nullptr){
+//			delete l;
+//			l = nullptr;
+//		}
+//		
+//		if (r != nullptr){
+//			delete r;
+//			r = nullptr;
+//		}
+//	}
+//};
 class waveletTreeByBit
 {
 	waveletTreeNodeByBit* root;
@@ -150,7 +213,7 @@ public:
 		{
 			float countlevel = (float(alphbetList.size()) / 2);
 			for (i = 0; i < countlevel; i++)
-				wt.allist.insert(In_Pair(alphbetList[i], 0));
+				wt.GettData().GetAlphaMap().insert(In_Pair(alphbetList[i], 0));
 			vector <unsigned char> lalphbetList(alphbetList.begin(), alphbetList.begin() + i);
 			vector <unsigned char> ralphbetList(alphbetList.begin() + i, alphbetList.end());
 			for (; i < alphbetList.size(); i++)
@@ -331,7 +394,6 @@ struct waveletTreeNode
 		r = nullptr;
 		p = nullptr;
 	}
-
 	waveletTreeNode(waveletTreeNode& parentNode) :waveletTreeNode()
 	{
 
