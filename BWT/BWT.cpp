@@ -26,7 +26,85 @@ typedef long long TIME_T;
 #define CSize 257
 #define SIZE 100
 using namespace std;
+template<class Tdata>
+class Node 
+{
+	private:
+		Node* l, *r, *p;
+		Tdata data;
+public:
+	Node() 
+	{
+		//Tdata(0);
+		l = nullptr;
+		r = nullptr;
+		p = nullptr;
+	}
+	Node(Node& parentNode) :Node()
+	{
+		p = &parentNode;
+	}
+	virtual void CreateTdata()
+	{
+		
+	}
 
+};
+template<class Tdata>
+class Tree
+{
+private:
+	Node<Tdata>* root;
+public:
+	Tree() 
+	{
+		root = new Tree();
+	}
+	Tree* getRoot() const
+	{
+		return root;
+	}
+	void CounstructWaveletTree(const vector<unsigned char> inarray, const vector<unsigned char> alphbetList, waveletTreeNodeByBit &wt) const
+	{
+		//map<unsigned char, int> allist;
+		unsigned int i;
+		vector<unsigned char> lCharArray, rCharArray;
+		typedef pair <unsigned char, int> In_Pair;
+		if (alphbetList.size()>1)
+		{
+			float countlevel = (float(alphbetList.size()) / 2);
+			for (i = 0; i < countlevel; i++)
+				wt.allist.insert(In_Pair(alphbetList[i], 0));
+			vector <unsigned char> lalphbetList(alphbetList.begin(), alphbetList.begin() + i);
+			vector <unsigned char> ralphbetList(alphbetList.begin() + i, alphbetList.end());
+			for (; i < alphbetList.size(); i++)
+				wt.allist.insert(In_Pair(alphbetList[i], 1));
+			for (i = 0; i < inarray.size(); i++)
+				if (wt.allist[inarray[i]] == 0)
+				{
+				wt.tData.push_back(0);
+				lCharArray.push_back(inarray[i]);
+				}
+				else
+				{
+					wt.tData.push_back(1);
+					rCharArray.push_back(inarray[i]);
+				}
+			wt.l = new waveletTreeNodeByBit(wt);
+			wt.r = new waveletTreeNodeByBit(wt);
+			CounstructWaveletTree(lCharArray, lalphbetList, *wt.l);
+			CounstructWaveletTree(rCharArray, ralphbetList, *wt.r);
+		}
+		else
+		{
+			vectorBit vector(static_cast<int>(inarray.size()), '1');
+			wt.tData = vector;
+			wt.ch = inarray[0];
+		}
+
+
+	}
+};
 class vectorBit
 {
 private:
