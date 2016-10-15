@@ -95,6 +95,30 @@ public:
 	}
 
 };
+class waveletTreeNodeByBit_C
+{
+	vectorBit tData;//store S
+	vector<vectorBit> headervector;//Sotre header use 3bit;
+	vector<unsigned int> SBrank;
+	vector<unsigned int> Brank;
+	vector<unsigned int> SB;
+	vector<unsigned int> B;
+};
+class waveletTreeByBit_C
+{
+	waveletTreeNodeByBit_C* root;
+public:
+	waveletTreeByBit_C() {
+		root = new waveletTreeNodeByBit_C();
+	}
+	//waveletTreeByBit(int alphbetCount) :waveletTreeByBit(){
+	//	//layer = (int)ceil(float(log2(alphbetCount))) + 1;
+	//}
+	waveletTreeNodeByBit_C* getRoot() const
+	{
+		return root;
+	}
+};
 struct waveletTreeNodeByBit
 {
 	vectorBit tData;
@@ -128,6 +152,7 @@ struct waveletTreeNodeByBit
 class waveletTreeByBit
 {
 	waveletTreeNodeByBit* root;
+
 public:
 	waveletTreeByBit() {
 		root = new waveletTreeNodeByBit();
@@ -635,11 +660,6 @@ void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	}
 }
 
-class waveletTreeNodeByBit_C :waveletTreeNodeByBit
-{
-	
-	
-};
 void quick_sort(unsigned char* s, int l, int r)
 {
 	if (l < r)
