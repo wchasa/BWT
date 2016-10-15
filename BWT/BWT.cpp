@@ -49,13 +49,14 @@ private:
 public:
 	Tree() 
 	{
-		root = new Tree();
+		root = new Node<Tdata>();
 	}
-	Tree* getRoot() const
+
+	Node<Tdata>* getRoot() const
 	{
 		return root;
 	}
-	void CounstructWaveletTree(const Indata inarray, Node<Tdata> &wt, CreateData<Indata, Tdata>* cdcalss) const
+	void CounstructWaveletTree(const Indata& inarray, Node<Tdata> &wt, CreateData<Indata, Tdata>* cdcalss) const
 	{
 		
 		//map<unsigned char, int> allist;
@@ -63,22 +64,27 @@ public:
 		Indata lCharArray, rCharArray;
 		Tdata currentDate;
 		typedef pair <unsigned char, int> In_Pair;
-		if (inarray!=0)
-		{
+		//if (inarray!=0)
+		//{
 			
-			wt.l = new waveletTreeNodeByBit(wt);
-			wt.r = new waveletTreeNodeByBit(wt);
-			cdcalss->Create(inarray, currentDate, lCharArray, rCharArray);
-			wt.data = currentDate;
-			CounstructWaveletTree(lCharArray, *wt.l, cdcalss);
-			CounstructWaveletTree(rCharArray, *wt.r, cdcalss);
-		}
-		else
+		wt.l = new Node<Tdata>(wt);
+		wt.r = new Node<Tdata>(wt);
+		cdcalss->Create(inarray, currentDate, lCharArray, rCharArray);
+		wt.data = currentDate;
+		if (!inarray.IsLeaf)
 		{
-			vectorBit vector(static_cast<int>(inarray.size()), '1');
-			wt.data = vector;
-			wt.ch = inarray[0];
+		CounstructWaveletTree(lCharArray, *wt.l, cdcalss);
+		CounstructWaveletTree(rCharArray, *wt.r, cdcalss);
 		}
+			
+	//	}
+		//else
+		//{
+
+		//	//vectorBit vector(static_cast<int>(inarray.size()), '1');
+		//	wt.data = currentDate;
+		//	wt.ch = inarray[0];
+		//}
 	}
 };
 
@@ -825,7 +831,7 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 int main()
 {
 	//todo mainpos
-	vectorBit v,v1,v2;
+	/*vectorBit v,v1,v2;
 	v.push_back(0);
 	v.push_back(1);
 	v.push_back(1);
@@ -840,7 +846,14 @@ int main()
 	v.push_back(0); 
 	GAMACode::HEADERTYPE head;
 	GAMACode::Encode(v, head, v1);
-	GAMACode::Decode(v1, head, v2,12);
+	GAMACode::Decode(v1, head, v2,12);*/
+	unsigned char* T = new unsigned char[21]{'a', 's', 'a', 'k', 'a', 'k', 'r', 'h', 'a', 'k', 'a', 'k', 'r', 'h', 'a', 'k', 'a', 's', 'a', 'k', '#'};
+	Tree<WaveLetIndata, WaveLetTdata> wavelettree;
+	WaveLetIndata wl_indata;
+	WaveLetTdata wl_tdata;
+	//wl_indata.
+	CreateData<WaveLetIndata, WaveLetTdata>* createData = new CreateWaveLetDate<WaveLetIndata, WaveLetTdata>();
+	wavelettree.CounstructWaveletTree(wl_indata, *wavelettree.getRoot(), createData);
 }
 //int _tmain(int argc, _TCHAR* argv[])
 //{
