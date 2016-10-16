@@ -634,7 +634,7 @@ void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 				count0++;
 			else
 			{
-				
+				//todo wodo
 				count0++;
 				int mount = 1;
 				AtlTrace("count0 = %d,", count0);
