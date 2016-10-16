@@ -25,11 +25,13 @@ typedef long long TIME_T;
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
 #define SIZE 100
+#define BSize 8
+#define SBSize 24
 using namespace std;
 
 class vectorBit
 {
-private:
+protected:
 	vector<byte> tData;
 	int Length;
 public:
@@ -94,6 +96,60 @@ public:
 		return (tData[i1] >> i2) & 0x01;
 	}
 
+};
+class vectorBitHeader :public vectorBit
+{
+void push_back(int input)
+{
+	//int i1 = Length / 8;
+	//
+	switch (input)
+	{
+	case 0: 
+		vectorBit::push_back(0);
+	}
+}
+int vectorBit::operator[](int i)
+{
+	
+}
+};
+class GAMACode
+{
+public:
+	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
+	//HEADERTYPE header;
+	//vectorBit Svector;
+	///根据inarray进行gama编码
+	static vectorBit EncodeSingle(int Length);
+	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
+	///根据inarray进行gama译码
+	//	static void DecodeSingle()
+	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
+	///inarray为s
+	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head, int loffset)
+	{
+
+	}
+};
+class GamaCompressData
+{
+	vectorBit gamacode;
+	vector<int> SBrank;
+	vector<int> Brank;
+	vector<int> SB;
+	vector<int> B;
+	public:
+	GamaCompressData();
+	void CreateDate(vectorBit inarray)
+	{
+		for (int i = 0; i < inarray.size(); )
+		{
+			GAMACode gama;
+			gama.Encode(inarray, );
+		}
+		
+	}
 };
 class waveletTreeNodeByBit_C
 {
@@ -531,24 +587,24 @@ public:
 
 	}
 };
-class GAMACode
-{
-public:
-	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
-	//HEADERTYPE header;
-	//vectorBit Svector;
-	///根据inarray进行gama编码
-	static vectorBit EncodeSingle(int Length);
-	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
-	///根据inarray进行gama译码
-	//	static void DecodeSingle()
-	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
-	///inarray为s
-	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head,int loffset)
-	{
-		
-	}
-};
+//class GAMACode
+//{
+//public:
+//	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
+//	//HEADERTYPE header;
+//	//vectorBit Svector;
+//	///根据inarray进行gama编码
+//	static vectorBit EncodeSingle(int Length);
+//	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
+//	///根据inarray进行gama译码
+//	//	static void DecodeSingle()
+//	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
+//	///inarray为s
+//	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head,int loffset)
+//	{
+//		
+//	}
+//};
 
 vectorBit GAMACode::EncodeSingle(int Length)
 {
