@@ -45,22 +45,22 @@ public:
 		int i1 = ceil(float(length) / 8);
 		//int i2 = length % 8;
 		Length = length;
-		vector<byte> temp(i1 , val1);
+		vector<byte> temp(i1, val1);
 		tData = temp;
 	}
 	void push_back(int input)
 	{
-		
+
 		int i1 = Length / 8;
 		int i2 = Length % 8;
-		if (i2==0)
+		if (i2 == 0)
 		{
 			tData.push_back(0);
 		}
 		Length++;
 		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
 	}
-	void push_back(int count,bool value)
+	void push_back(int count, bool value)
 	{
 		for (int i = 0; i < count; i++)
 			this->push_back(value);
@@ -69,7 +69,7 @@ public:
 	{
 		int i1 = Length / 8;
 		int i2 = Length % 8;
-		for (int i = 0; i < input.Length;i++)
+		for (int i = 0; i < input.Length; i++)
 		{
 			if (i2 == 0)
 			{
@@ -77,7 +77,7 @@ public:
 			}
 			Length++;
 			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-			if (i2++==7)
+			if (i2++ == 7)
 			{
 				i2 = 0;
 				i1++;
@@ -95,24 +95,81 @@ public:
 		int i2 = i % 8;
 		return (tData[i1] >> i2) & 0x01;
 	}
-
+	int vectorBit::pop_back(int i){
+		if (i < 0 || i >= Length)
+			return 0;
+		int i1 = i / 8;
+		int i2 = i % 8;
+		return (tData[i1] >> i2) & 0x01;
+	};
+}
+class BaisOperate
+{
+public:
+	static int rank1(vectorBit inarray,int pos)
+	{
+		int count = 0;
+		pos = pos < inarray.size() ? pos : inarray.size();
+		for (int i = 0; i < pos; i++)
+			if (inarray[i] == 1)
+				count++;
+		return count;
+	}
 };
+/**
+ * \brief Header vector
+ */
 class vectorBitHeader :public vectorBit
 {
-void push_back(int input)
-{
-	//int i1 = Length / 8;
-	//
-	switch (input)
+public:
+	void push_back(int input)
 	{
-	case 0: 
-		vectorBit::push_back(0);
+		//int i1 = Length / 8;
+		//
+		switch (input)
+		{
+		case 0: 
+			vectorBit::push_back(0);
+			vectorBit::push_back(0);
+			vectorBit::push_back(0);
+			break;
+		case 1:
+			vectorBit::push_back(0);
+			vectorBit::push_back(0);
+			vectorBit::push_back(1);
+			break;
+		case 2:
+			vectorBit::push_back(0);
+			vectorBit::push_back(1);
+			vectorBit::push_back(0);
+			break;
+		case 3:
+			vectorBit::push_back(0);
+			vectorBit::push_back(1);
+			vectorBit::push_back(1);
+			break;
+		case 4:
+			vectorBit::push_back(1);
+			vectorBit::push_back(0);
+			vectorBit::push_back(0);
+			break;
+		case 5:
+			vectorBit::push_back(1);
+			vectorBit::push_back(0);
+			vectorBit::push_back(1);
+			break;
+		default:
+			return;
+		}
 	}
-}
-int vectorBit::operator[](int i)
-{
-	
-}
+	int vectorBitHeader::operator[](int i)
+	{
+		int pos = i * 3;
+		int result = vectorBit::pop_back(pos++);
+		result = (result << 1) + vectorBit::pop_back(pos++);
+		result = (result << 1) + vectorBit::pop_back(pos++);
+		return result;
+	}
 };
 class GAMACode
 {
@@ -134,21 +191,51 @@ public:
 };
 class GamaCompressData
 {
-	vectorBit gamacode;
-	vector<int> SBrank;
-	vector<int> Brank;
-	vector<int> SB;
-	vector<int> B;
+	vectorBitHeader gamaHeader;
+	vectorBit		gamacode;
+	vector<int>		SBrank;
+	vector<int>		Brank;
+	vector<int>		SB;
+	vector<int>		B;
 	public:
 	GamaCompressData();
 	void CreateDate(vectorBit inarray)
 	{
-		for (int i = 0; i < inarray.size(); )
+		int i = 0;
+		int SBrank_s = 0;
+		int SB_s = 0;
+		SBrank.push_back(0);
+		Brank.push_back(0);
+		SB.push_back(0);
+		B.push_back(0);
+
+		for (i = 0; i < inarray.size(); )
 		{
 			GAMACode gama;
-			gama.Encode(inarray, );
+			vectorBit bitetemp;
+			GAMACode::HEADERTYPE headtemp;
+			gama.Encode(inarray, headtemp, bitetemp);
+			gamaHeader.push_back(static_cast<int>(headtemp));
+			gamacode.push_back(bitetemp);
+			B.push_back(bitetemp.size());
+			int ranktemp = BaisOperate::rank1(bitetemp, bitetemp.size());
+			Brank.push_back(ranktemp);
+			i += i + BSize;
+			SBrank_s += ranktemp;
+			SB_s += ranktemp;
+			if (i%SBSize == 0)
+			{
+				SBrank.push_back(SBrank_s);
+				SB.push_back(SB_s);
+			}
+
 		}
-		
+		if (i%SBSize != 0)
+		{
+			SBrank.push_back(SBrank_s);
+			SB.push_back(SB_s);
+		}
+
 	}
 };
 class waveletTreeNodeByBit_C
