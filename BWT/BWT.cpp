@@ -11,8 +11,8 @@
 //#include<string.h>
 #include <string>
 #include <stdlib.h>
-
-#include <atltrace.h>
+#include <time.h>
+//#include <atltrace.h>
 #if defined(WIN32)
 # define  TIMEB     _timeb
 # define  ftime     _ftime64_s
@@ -24,9 +24,9 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 100
-#define BSize 8
-#define SBSize 24
+#define SIZE 1024*1024*10
+#define BSize 64
+#define SBSize 256
 using namespace std;
 
 class vectorBit
@@ -84,9 +84,27 @@ public:
 			}
 		}
 	}
+	vectorBit copy(int startpos, int count)
+	{
+		vectorBit temp;
+		for (int i = 0; i < count; i++)
+			temp.push_back(pop_back(i + startpos));
+		return temp;
+	}
+	vectorBit copy()
+	{
+		vectorBit temp;
+		for (int i = 0; i < Length; i++)
+			temp.push_back(pop_back(i));
+		return temp;
+	}
 	int size() const
 	{
 		return Length;
+	}
+	void SetSize(int size) 
+	{
+		Length = size;
 	}
 	int vectorBit::operator[](int i){
 		if (i < 0 || i >= Length)
@@ -101,8 +119,8 @@ public:
 		int i1 = i / 8;
 		int i2 = i % 8;
 		return (tData[i1] >> i2) & 0x01;
-	};
-}
+	}
+};
 class BaisOperate
 {
 public:
@@ -111,6 +129,16 @@ public:
 		int count = 0;
 		pos = pos < inarray.size() ? pos : inarray.size();
 		for (int i = 0; i < pos; i++)
+			if (inarray[i] == 1)
+				count++;
+		return count;
+	}
+	static int rank1(vectorBit inarray,int startpos, int mount)
+	{
+		int count = 0;
+		int endpos = startpos + mount;
+		endpos = endpos < inarray.size() ? endpos : inarray.size();
+		for (int i = startpos; i < endpos; i++)
 			if (inarray[i] == 1)
 				count++;
 		return count;
@@ -191,6 +219,7 @@ public:
 };
 class GamaCompressData
 {
+public:
 	vectorBitHeader gamaHeader;
 	vectorBit		gamacode;
 	vector<int>		SBrank;
@@ -198,43 +227,74 @@ class GamaCompressData
 	vector<int>		SB;
 	vector<int>		B;
 	public:
-	GamaCompressData();
-	void CreateDate(vectorBit inarray)
+	GamaCompressData()
 	{
-		int i = 0;
-		int SBrank_s = 0;
-		int SB_s = 0;
 		SBrank.push_back(0);
 		Brank.push_back(0);
 		SB.push_back(0);
 		B.push_back(0);
-
+	};
+	void CreateDate(vectorBit inarray)
+	{
+		int i = 0;
+		int ranktemp = 0;
+		int SBrank_s = 0, SB_s = 0, Brank_s = 0, B_s = 0, SBrank_s_pre = 0, SB_s_pre =0 ;
 		for (i = 0; i < inarray.size(); )
 		{
 			GAMACode gama;
 			vectorBit bitetemp;
 			GAMACode::HEADERTYPE headtemp;
-			gama.Encode(inarray, headtemp, bitetemp);
+			vectorBit intemp = inarray.copy( i, BSize);
+			gama.Encode(intemp, headtemp, bitetemp);		
+			//////////////////////////////////////////////////
 			gamaHeader.push_back(static_cast<int>(headtemp));
 			gamacode.push_back(bitetemp);
-			B.push_back(bitetemp.size());
-			int ranktemp = BaisOperate::rank1(bitetemp, bitetemp.size());
-			Brank.push_back(ranktemp);
-			i += i + BSize;
+			//////////////////////////////////////////////////
+			B_s = bitetemp.size() + B_s;
+			
+			if (headtemp == GAMACode::ALL1)
+				ranktemp = BSize;
+			else if (headtemp == GAMACode::ALL0)
+				ranktemp = 0;
+			else
+				ranktemp = BaisOperate::rank1(inarray, i, BSize);
+			Brank_s = ranktemp + Brank_s;
+
+//			AtlTrace("%d\n", Brank_s);
+			i += BSize;
+			if (i%SBSize != 0)
+			{
+				Brank.push_back(Brank_s - SBrank_s_pre);
+				B.push_back(B_s - SB_s_pre);
+			}
+			else
+			{
+				SBrank_s_pre = Brank_s;
+				SB_s_pre = B_s;
+				SBrank.push_back(Brank_s);
+				Brank.push_back(Brank_s - SBrank_s_pre);
+				SB.push_back(B_s);
+				B.push_back(B_s - SB_s_pre);
+			}
+				
 			SBrank_s += ranktemp;
 			SB_s += ranktemp;
-			if (i%SBSize == 0)
-			{
-				SBrank.push_back(SBrank_s);
-				SB.push_back(SB_s);
-			}
-
+			//if (i%SBSize == 0)
+			//{
+			//	SB_s_pre = SB_s;
+			//	SBrank_s_pre = SBrank_s;
+			//	SBrank.push_back(SBrank_s);
+			//	SB.push_back(SB_s);
+			//	B_s = 0;
+			//	Brank_s = 0;
+			//}
+		
 		}
-		if (i%SBSize != 0)
-		{
-			SBrank.push_back(SBrank_s);
-			SB.push_back(SB_s);
-		}
+		//if (i%SBSize != 0)
+		//{
+		//	SBrank.push_back(SBrank_s);
+		//	SB.push_back(SB_s);
+		//}
 
 	}
 };
@@ -267,9 +327,11 @@ struct waveletTreeNodeByBit
 	vectorBit tData;
 	map<unsigned char, int> allist;
 	char ch;
+	GamaCompressData GamaData;
 	waveletTreeNodeByBit *l, *r, *p;
 	waveletTreeNodeByBit(): ch(0)
 	{
+		
 		l = nullptr;
 		r = nullptr;
 		p = nullptr;
@@ -334,6 +396,7 @@ public:
 					wt.tData.push_back(1);
 					rCharArray.push_back(inarray[i]);
 				}
+			wt.GamaData.CreateDate(wt.tData);
 			wt.l = new waveletTreeNodeByBit(wt);
 			wt.r = new waveletTreeNodeByBit(wt);
 			CounstructWaveletTree(lCharArray, lalphbetList, *wt.l);
@@ -390,8 +453,6 @@ public:
 		waveletTreeNodeByBit* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
-		//int Divedepos;
-		//auto i = 0;
 		int ipos = pos;
 		typedef pair <unsigned char, int> In_Pair;
 		while (nodetemp->l != nullptr)
@@ -411,9 +472,72 @@ public:
 		return ipos;
 
 	}
+	static int rankOfCurrentGama(const int& pos, GamaCompressData& GamaData/*, const vector<unsigned char> alphbetList*/)
+	{
+		//waveletTreeNodeByBit* nodetemp = root;
+		int offset =GamaData.SB[(pos + 1) / SBSize] + GamaData.B[(pos + 1) / BSize];
+		int header = GamaData.gamaHeader[(pos + 1) / BSize];
+		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) % BSize);
+		return  rankresult;
+	}
+	static int lrank(vectorBit s, int offset, int headertype, int mount) 
+	{
+		bool bval;
+		//const int compareNum =0;
+		int count0 = 0;
+		int Bpos = 0;
+		int rankval=0; 
+		switch (headertype)
+		{
+		case GAMACode::Plain:
+			return rank1(s, offset, offset + mount);
+			break;
+		case GAMACode::RLG0:
+		case GAMACode::RLG1:
+			//int count0 = 0;
+			bval = GAMACode::RLG0 == headertype ? false : true;
+			for (int i = offset; Bpos <mount ;)
+			{
+				if (s[i++] == 0)
+					count0++;
+				else
+				{
+					//todo wodo
+					count0++;
+					int m1 = 1;//count of runlength;
+					//AtlTrace("count0 = %d,", count0);
+					for (int j = 0; j < count0 - 1; j++)
+					{
+					//	AtlTrace("%d,", inarray[i]);
+						m1 = (m1 << 1) + s[i++];
+					}
+				//	AtlTrace("mount = %d\n", mount);
+					if (bval)
+					{
+						if (Bpos + m1>mount)
+							rankval += m1 - (Bpos + m1 - mount);
+						else
+							rankval += m1;
+						
+					}
+					bval = bval ? false : true;
+					
+					count0 = 0;
+					Bpos += m1;
+				}
+			}
 
-
-
+			break;
+		case GAMACode::ALL0:
+			return 0;
+			break;
+		case GAMACode::ALL1:
+			return mount;
+			break;
+		default: break;
+		}
+		return rankval;
+	}
 	int Select(const unsigned char c, const int& pos) const
 	{
 		int count;
@@ -451,6 +575,16 @@ public:
 	{
 		int icount = 0;
 		for (int i = 0; i < (pos<L.size() ? pos : L.size()); i++)
+		{
+			if (L[i] == 1)
+				icount++;
+		}
+		return icount;
+	}
+	static int rank1(vectorBit L, int start, int pos)
+	{
+		int icount = 0;
+		for (int i = start; i < (pos<L.size() ? pos : L.size()); i++)
 		{
 			if (L[i] == 1)
 				icount++;
@@ -716,7 +850,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		return;
 	int compareNum = inarray[0];
 	//vector<int> mount;
-	if (compareNum == 1)
+	if (compareNum == 1)	
 		header = RLG1;
 	else
 		header = RLG0;
@@ -733,21 +867,29 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 			count = 1;
 			compareNum = inarray[i];
 		}
-		if (inarray.size() < Outvector.size())
+		if (inarray.size() <= Outvector.size())
 		{
 			header = Plain;
-			break;
+			Outvector.SetSize(0);
+			Outvector = inarray.copy();
+			return;
+			//break;
 		}
 	}
-	if (count == inarray.size())
+	if (count == inarray.size())//ALL 0/1
 	{
 		header = header == RLG1 ? ALL1 : ALL0;
+		Outvector.SetSize(0);
 		return;
 	}
 	Outvector.push_back(EncodeSingle(count));
 	//mount.push_back(count);
-	if (inarray.size() < Outvector.size())
+	if (inarray.size() < Outvector.size())//plain
+	{
 		header = Plain;
+		Outvector.SetSize(inarray.size());
+		Outvector = inarray.copy();
+	}
 }
 
 /**
@@ -780,13 +922,13 @@ void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 				//todo wodo
 				count0++;
 				int mount = 1;
-				AtlTrace("count0 = %d,", count0);
+//				AtlTrace("count0 = %d,", count0);
 				for (int j = 0; j < count0-1 ; j++)
 				{
-					AtlTrace("%d,",inarray[i]);
+//					AtlTrace("%d,",inarray[i]);
 					mount = (mount << 1) + inarray[i++];
 				}
-				AtlTrace("mount = %d\n", mount);
+//				AtlTrace("mount = %d\n", mount);
 				Outvector.push_back(mount, bval);
 				bval = bval ? false: true;
 				count0 = 0;
@@ -997,83 +1139,113 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 
 	return ' ';
 }
-int main()
-{
-	//todo mainpos
-	vectorBit v,v1,v2;
-	v.push_back(0);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(1);
-	v.push_back(0);
-	v.push_back(0); 
-	GAMACode::HEADERTYPE head;
-	GAMACode::Encode(v, head, v1);
-	GAMACode::Decode(v1, head, v2,12);
-}
-//int _tmain(int argc, _TCHAR* argv[])
+//int main()
 //{
-//	FILE* fp;
-//	//vector<unsigned char> alphbetVector,BWTvector;
-//	unsigned char* alphbetList = new unsigned char[256];
-//	int* CTable = new int[CSize];
-//	int posOfend = 0;
-//	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-//	const char* strpath = "G:\\测试数据\\normal\\dna";
-//	if (fopen_s(&fp, strpath, "r"))
+//	//Todo mainpos
+//	vectorBit v,v1,v2;
+//	v.push_back(0);	v.push_back(0);	v.push_back(1);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0); v.push_back(0);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0);
+//	v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0);
+//	v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1);
+//	v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1);
+//	v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0);
+//	v.push_back(0); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(0); v.push_back(0);
+//	v.push_back(0); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(0); v.push_back(0); v.push_back(1); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0);
+//	/*GAMACode::HEADERTYPE head;
+//	GAMACode::Encode(v, head, v1);
+//	GAMACode::Decode(v1, head, v2,12);*/
+//	GamaCompressData gamacode;
+//	gamacode.CreateDate(v);
+//	for (int i = 0; i < 84; i++)
 //	{
-//		printf("The file %s is not exist.", strpath);
-//		return 0;
+//		int r = waveletTreeByBit::rankOfCurrentGama(i, gamacode);
+//		AtlTrace("Rank(%d) =  %d \n", i,r);
 //	}
-//	int err = fseek(fp, 0L, SEEK_END);
-//	long size = ftell(fp);
-//	fseek(fp, 0, SEEK_SET);
-//	size = size < SIZE ? size : SIZE;
-//	unsigned char* list = new unsigned char[size];
-//	long count = fread(list, sizeof(char), size, fp);
-//	//unsigned char* inarray = new int[size];
-//
-//	//unsigned char* list = new unsigned char[size];
-//	vector<unsigned char> Tvector;
-//	unsigned char* T2 = new unsigned char[size];
-//	const int length = size;
-//	unsigned char* BWT = new unsigned char[length];
-//	int* LF = new int[length];
-//	posOfend = constructBWT(list, BWT, length);
-//	constructC(list, CTable, length);
-//	computerLF(CTable, BWT, LF, length);
-//	ReconstructT(BWT, LF, posOfend, T2,length);
-//	int alCount = Calcdelt(list, alphbetList, length);
-//	quick_sort(alphbetList, 0, alCount-1);
-////	waveletTree* tree = new waveletTree(alCount);
-//	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
-//	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
-//	vector<unsigned char> BWTvector(BWT, BWT + length);
-//	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());	
-//	for (int i = 0; i < length; i++)
-//	{
-//		std::cout << BWT[i] << ",";
-//	}
-//	std::cout << endl; std::cout << endl;
-//
-//	for (int i = 0; i < length; i++)
-//	{
-//		std::cout << tree->Access(i) << ",";
-//	}
-//	std::cout << endl;
-//	std::cout << tree->Rank('A', 13);
-//	std::cout << endl;
-//	std::cout << tree->Select('C', 10);
-//	std::cout << endl;
-//	tree->destory(tree->getRoot(), NULL);
-//	return 0;
 //}
+int _tmain(int argc, _TCHAR* argv[])
+{
+	//Todo mainpos
+	clock_t start, end;
+	clock_t startall, endall;
+	double duration;
+	FILE* fp;
+	//vector<unsigned char> alphbetVector,BWTvector;
+	unsigned char* alphbetList = new unsigned char[256];
+	int* CTable = new int[CSize];
+	int posOfend = 0;
+	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
+	const char* strpath = "E:\\测试数据\\测试数据\\normal\\dna";
+	if (fopen_s(&fp, strpath, "r"))
+	{
+		printf("The file %s is not exist.", strpath);
+		return 0;
+	}
+	int err = fseek(fp, 0L, SEEK_END);
+	long size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	size = size < SIZE ? size : SIZE;
+	unsigned char* list = new unsigned char[size];
+	long count = fread(list, sizeof(char), size, fp);
+	//unsigned char* inarray = new int[size];
+
+	//unsigned char* list = new unsigned char[size];
+	vector<unsigned char> Tvector;
+	unsigned char* T2 = new unsigned char[size];
+	const int length = size;
+	unsigned char* BWT = new unsigned char[length];
+	int* LF = new int[length];
+	start = clock();
+	startall = clock();
+	posOfend = constructBWT(list, BWT, length);
+	end = clock();
+	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF constructBWT %f\n", duration); 
+	start = clock();
+	constructC(list, CTable, length);
+	end = clock();
+	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF constructC %f\n", duration);
+	start = clock();
+	//computerLF(CTable, BWT, LF, length);
+	end = clock();
+	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF computerLF %f\n", duration);
+	start = clock();
+	//ReconstructT(BWT, LF, posOfend, T2,length);
+	end = clock();
+	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF ReconstructT %f\n", duration);
+	int alCount = Calcdelt(list, alphbetList, length);
+	quick_sort(alphbetList, 0, alCount-1);
+//	waveletTree* tree = new waveletTree(alCount);
+	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
+	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
+	vector<unsigned char> BWTvector(BWT, BWT + length);
+	start = clock();
+	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());
+	end = clock();
+	endall = clock();
+	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF CounstructWaveletTree %f\n", duration);
+	duration = (double)(endall - startall) / CLOCKS_PER_SEC;
+	printf("durationOF ALlProcess %f\n", duration);
+	/*for (int i = 0; i < length; i++)
+	{
+		std::cout << BWT[i] << ",";
+	}
+	std::cout << endl; std::cout << endl;
+
+	for (int i = 0; i < length; i++)
+	{
+		std::cout << tree->Access(i) << ",";
+	}
+	std::cout << endl;
+	std::cout << tree->Rank('A', 13);
+	std::cout << endl;
+	std::cout << tree->Select('C', 10);
+	std::cout << endl;*/
+//	tree->destory(tree->getRoot(), NULL);
+	return 0;
+}
 
 //int _tmain(int argc, _TCHAR* argv[])
 //{
