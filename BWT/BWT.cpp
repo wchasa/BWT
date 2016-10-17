@@ -24,7 +24,7 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 1024*1024*10
+#define SIZE 1024*1024
 #define BSize 64
 #define SBSize 256
 using namespace std;
@@ -195,7 +195,8 @@ public:
 		int pos = i * 3;
 		int result = vectorBit::pop_back(pos++);
 		result = (result << 1) + vectorBit::pop_back(pos++);
-		result = (result << 1) + vectorBit::pop_back(pos++);
+		result = (result << 1) + pop_back(pos++);
+		//result = (result << 1) + vectorBit::pop_back(pos++);
 		return result;
 	}
 };
@@ -206,16 +207,12 @@ public:
 	//HEADERTYPE header;
 	//vectorBit Svector;
 	///根据inarray进行gama编码
-	static vectorBit EncodeSingle(int Length);
+//	static vectorBit EncodeSingle(int Length);
+	static void EncodeSingle(vectorBit& outarray, int Length);
 	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
 	///根据inarray进行gama译码
 	//	static void DecodeSingle()
 	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
-	///inarray为s
-	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head, int loffset)
-	{
-
-	}
 };
 class GamaCompressData
 {
@@ -236,8 +233,8 @@ public:
 	};
 	void CreateDate(vectorBit inarray)
 	{
-		int i = 0;
-		int ranktemp = 0;
+		int i;
+		int ranktemp;
 		int SBrank_s = 0, SB_s = 0, Brank_s = 0, B_s = 0, SBrank_s_pre = 0, SB_s_pre =0 ;
 		for (i = 0; i < inarray.size(); )
 		{
@@ -491,7 +488,6 @@ public:
 		{
 		case GAMACode::Plain:
 			return rank1(s, offset, offset + mount);
-			break;
 		case GAMACode::RLG0:
 		case GAMACode::RLG1:
 			//int count0 = 0;
@@ -530,10 +526,8 @@ public:
 			break;
 		case GAMACode::ALL0:
 			return 0;
-			break;
 		case GAMACode::ALL1:
 			return mount;
-			break;
 		default: break;
 		}
 		return rankval;
@@ -827,10 +821,10 @@ public:
 //	}
 //};
 
-vectorBit GAMACode::EncodeSingle(int Length)
+ void GAMACode::EncodeSingle(vectorBit& outarray, int Length)
 {
 	int i;
-	vectorBit outarray;
+	//vectorBit outarray;
 	int size = log2(Length) + 1;
 	for (i = 0; i < size - 1; i++)
 	{
@@ -841,7 +835,7 @@ vectorBit GAMACode::EncodeSingle(int Length)
 		int t = (Length >> (size - i - 1)) & 0x01;
 		outarray.push_back(t);
 	}
-	return outarray;
+	//return outarray;
 }
 
 void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
@@ -861,7 +855,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 			count++;
 		else
 		{
-			Outvector.push_back(EncodeSingle(count));
+			/*Outvector.push_back*/(EncodeSingle(Outvector, count));
 			//count = 1;
 			//	mount.push_back(count);
 			count = 1;
@@ -882,7 +876,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		Outvector.SetSize(0);
 		return;
 	}
-	Outvector.push_back(EncodeSingle(count));
+	EncodeSingle(Outvector, count);
 	//mount.push_back(count);
 	if (inarray.size() < Outvector.size())//plain
 	{
@@ -1171,19 +1165,21 @@ int _tmain(int argc, _TCHAR* argv[])
 	//vector<unsigned char> alphbetVector,BWTvector;
 	unsigned char* alphbetList = new unsigned char[256];
 	int* CTable = new int[CSize];
-	int posOfend = 0;
+	int posOfend;
 	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-	const char* strpath = "E:\\测试数据\\测试数据\\normal\\dna";
+	const char* strpath = "J:\\测试数据\\normal\\dna";
 	if (fopen_s(&fp, strpath, "r"))
 	{
 		printf("The file %s is not exist.", strpath);
 		return 0;
 	}
-	int err = fseek(fp, 0L, SEEK_END);
+	// ReSharper disable once CppEntityNeverUsed
+	auto err = fseek(fp, 0L, SEEK_END);
 	long size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	size = size < SIZE ? size : SIZE;
 	unsigned char* list = new unsigned char[size];
+	// ReSharper disable once CppEntityNeverUsed
 	long count = fread(list, sizeof(char), size, fp);
 	//unsigned char* inarray = new int[size];
 
@@ -1197,22 +1193,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	startall = clock();
 	posOfend = constructBWT(list, BWT, length);
 	end = clock();
-	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 	printf("durationOF constructBWT %f\n", duration); 
 	start = clock();
 	constructC(list, CTable, length);
 	end = clock();
-	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 	printf("durationOF constructC %f\n", duration);
 	start = clock();
 	//computerLF(CTable, BWT, LF, length);
 	end = clock();
-	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 	printf("durationOF computerLF %f\n", duration);
 	start = clock();
 	//ReconstructT(BWT, LF, posOfend, T2,length);
 	end = clock();
-	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 	printf("durationOF ReconstructT %f\n", duration);
 	int alCount = Calcdelt(list, alphbetList, length);
 	quick_sort(alphbetList, 0, alCount-1);
