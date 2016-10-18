@@ -29,99 +29,100 @@ typedef long long TIME_T;
 #define BSize 64
 #define SBSize 256
 using namespace std;
-
-class vectorBit
-{
-protected:
-	vector<byte> tData;
-	int Length;
-public:
-	vectorBit()
-	{
-		Length = 0;
-	}
-	vectorBit(int length, byte val) :vectorBit()
-	{
-		byte val1 = val == 0 ? 0x00 : 0xFF;
-		int i1 = ceil(float(length) / 8);
-		//int i2 = length % 8;
-		Length = length;
-		vector<byte> temp(i1, val1);
-		tData = temp;
-	}
-	void push_back(int input)
-	{
-
-		int i1 = Length / 8;
-		int i2 = Length % 8;
-		if (i2 == 0)
-		{
-			tData.push_back(0);
-		}
-		Length++;
-		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-	}
-	void push_back(int count, bool value)
-	{
-		for (int i = 0; i < count; i++)
-			this->push_back(value);
-	}
-	void push_back(vectorBit input)
-	{
-		int i1 = Length / 8;
-		int i2 = Length % 8;
-		for (int i = 0; i < input.Length; i++)
-		{
-			if (i2 == 0)
-			{
-				tData.push_back(0);
-			}
-			Length++;
-			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-			if (i2++ == 7)
-			{
-				i2 = 0;
-				i1++;
-			}
-		}
-	}
-	vectorBit copy(int startpos, int count)
-	{
-		vectorBit temp;
-		for (int i = 0; i < count; i++)
-			temp.push_back(pop_back(i + startpos));
-		return temp;
-	}
-	vectorBit copy()
-	{
-		vectorBit temp;
-		for (int i = 0; i < Length; i++)
-			temp.push_back(pop_back(i));
-		return temp;
-	}
-	int size() const
-	{
-		return Length;
-	}
-	void SetSize(int size) 
-	{
-		Length = size;
-	}
-	int vectorBit::operator[](int i){
-		if (i < 0 || i >= Length)
-			return 0;
-		int i1 = i / 8;
-		int i2 = i % 8;
-		return (tData[i1] >> i2) & 0x01;
-	}
-	int vectorBit::pop_back(int i){
-		if (i < 0 || i >= Length)
-			return 0;
-		int i1 = i / 8;
-		int i2 = i % 8;
-		return (tData[i1] >> i2) & 0x01;
-	}
-};
+typedef vector<byte> vectorBit;
+typedef vector<byte> vectorBitHeader;
+//class vectorBit
+//{
+//protected:
+//	vector<byte> tData;
+//	int Length;
+//public:
+//	vectorBit()
+//	{
+//		Length = 0;
+//	}
+//	vectorBit(int length, byte val) :vectorBit()
+//	{
+//		byte val1 = val == 0 ? 0x00 : 0xFF;
+//		int i1 = ceil(float(length) / 8);
+//		//int i2 = length % 8;
+//		Length = length;
+//		vector<byte> temp(i1, val1);
+//		tData = temp;
+//	}
+//	void push_back(int input)
+//	{
+//
+//		int i1 = Length / 8;
+//		int i2 = Length % 8;
+//		if (i2 == 0)
+//		{
+//			tData.push_back(0);
+//		}
+//		Length++;
+//		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
+//	}
+//	void push_back(int count, bool value)
+//	{
+//		for (int i = 0; i < count; i++)
+//			this->push_back(value);
+//	}
+//	void push_back(vectorBit input)
+//	{
+//		int i1 = Length / 8;
+//		int i2 = Length % 8;
+//		for (int i = 0; i < input.Length; i++)
+//		{
+//			if (i2 == 0)
+//			{
+//				tData.push_back(0);
+//			}
+//			Length++;
+//			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
+//			if (i2++ == 7)
+//			{
+//				i2 = 0;
+//				i1++;
+//			}
+//		}
+//	}
+//	vectorBit copy(int startpos, int count)
+//	{
+//		vectorBit temp;
+//		for (int i = 0; i < count; i++)
+//			temp.push_back(pop_back(i + startpos));
+//		return temp;
+//	}
+//	vectorBit copy()
+//	{
+//		vectorBit temp;
+//		for (int i = 0; i < Length; i++)
+//			temp.push_back(pop_back(i));
+//		return temp;
+//	}
+//	int size() const
+//	{
+//		return Length;
+//	}
+//	void SetSize(int size) 
+//	{
+//		Length = size;
+//	}
+//	int vectorBit::operator[](int i){
+//		if (i < 0 || i >= Length)
+//			return 0;
+//		int i1 = i / 8;
+//		int i2 = i % 8;
+//		return (tData[i1] >> i2) & 0x01;
+//	}
+//	int vectorBit::pop_back(int i){
+//		if (i < 0 || i >= Length)
+//			return 0;
+//		int i1 = i / 8;
+//		int i2 = i % 8;
+//		return (tData[i1] >> i2) & 0x01;
+//	}
+//};
 class BaisOperate
 {
 public:
@@ -148,59 +149,60 @@ public:
 /**
  * \brief Header vector
  */
-class vectorBitHeader :public vectorBit
-{
-public:
-	void push_back(int input)
-	{
-		//int i1 = Length / 8;
-		//
-		switch (input)
-		{
-		case 0: 
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			break;
-		case 1:
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			break;
-		case 2:
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
-			break;
-		case 3:
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			vectorBit::push_back(1);
-			break;
-		case 4:
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			break;
-		case 5:
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			break;
-		default:
-			return;
-		}
-	}
-	int vectorBitHeader::operator[](int i)
-	{
-		int pos = i * 3;
-		int result = vectorBit::pop_back(pos++);
-		result = (result << 1) + vectorBit::pop_back(pos++);
-		result = (result << 1) + pop_back(pos++);
-		//result = (result << 1) + vectorBit::pop_back(pos++);
-		return result;
-	}
-};
+//class vectorBitHeader 
+//{
+//	vectorBit tdata;
+//public:
+//	void push_back(int input)
+//	{
+//		//int i1 = Length / 8;
+//		//
+//		switch (input)
+//		{
+//		case 0: 
+//			tdata.push_back(0);
+//			tdata.push_back(0);
+//			tdata.push_back(0);
+//			break;
+//		case 1:
+//			tdata.push_back(0);
+//			tdata.push_back(0);
+//			tdata.push_back(1);
+//			break;
+//		case 2:
+//			tdata.push_back(0);
+//			tdata.push_back(1);
+//			tdata.push_back(0);
+//			break;
+//		case 3:
+//			tdata.push_back(0);
+//			tdata.push_back(1);
+//			tdata.push_back(1);
+//			break;
+//		case 4:
+//			tdata.push_back(1);
+//			tdata.push_back(0);
+//			tdata.push_back(0);
+//			break;
+//		case 5:
+//			tdata.push_back(1);
+//			tdata.push_back(0);
+//			tdata.push_back(1);
+//			break;
+//		default:
+//			return;
+//		}
+//	}
+//	int vectorBitHeader::operator[](int i)
+//	{
+//		int pos = i * 3;
+//		int result = tdata[pos++];
+//		result = (result << 1) + tdata[pos++];
+//		result = (result << 1) + tdata[pos++];
+//		//result = (result << 1) + vectorBit::pop_back(pos++);
+//		return result;
+//	}
+//};
 class GAMACode
 {
 public:
@@ -242,11 +244,20 @@ public:
 			GAMACode gama;
 			vectorBit bitetemp;
 			GAMACode::HEADERTYPE headtemp;
-			vectorBit intemp = inarray.copy( i, BSize);
-			gama.Encode(intemp, headtemp, bitetemp);		
+			vectorBit intemp;
+			intemp.resize(BSize);
+			memcpy(&intemp[0], &inarray[i], BSize);
+			
+			gama.Encode(intemp, headtemp, bitetemp);
 			//////////////////////////////////////////////////
 			gamaHeader.push_back(static_cast<int>(headtemp));
-			gamacode.push_back(bitetemp);
+			//gamacode.push_back(inarray);
+			int oldsize = gamacode.size();
+			if (0 != bitetemp.size())
+			{
+				gamacode.resize(gamacode.size() + bitetemp.size());
+				memcpy(&gamacode[oldsize], &bitetemp[0], bitetemp.size());
+			}
 			//////////////////////////////////////////////////
 			B_s = bitetemp.size() + B_s;
 			
@@ -865,8 +876,9 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		if (inarray.size() <= Outvector.size())
 		{
 			header = Plain;
-			Outvector.SetSize(0);
-			Outvector = inarray.copy();
+			Outvector.resize(inarray.size());
+			memcpy(&Outvector[0], &inarray[0], inarray.size() * sizeof(char));
+			//Outvector = inarray.copy();
 			return;
 			//break;
 		}
@@ -874,7 +886,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	if (count == inarray.size())//ALL 0/1
 	{
 		header = header == RLG1 ? ALL1 : ALL0;
-		Outvector.SetSize(0);
+		Outvector.resize(0);
 		return;
 	}
 	EncodeSingle(Outvector, count);
@@ -882,8 +894,8 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	if (inarray.size() < Outvector.size())//plain
 	{
 		header = Plain;
-		Outvector.SetSize(inarray.size());
-		Outvector = inarray.copy();
+		Outvector.resize(inarray.size());
+		memcpy(&Outvector[0], &inarray[0], inarray.size() * sizeof(char));
 	}
 }
 
@@ -924,7 +936,9 @@ void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 					mount = (mount << 1) + inarray[i++];
 				}
 //				AtlTrace("mount = %d\n", mount);
-				Outvector.push_back(mount, bval);
+				//Outvector.push_back(mount, bval);
+				Outvector.resize(Outvector.size() + mount);
+				memset(&Outvector[Outvector.size()], static_cast<byte>(bval), mount);
 				bval = bval ? false: true;
 				count0 = 0;
 			}
