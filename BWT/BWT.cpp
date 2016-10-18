@@ -25,7 +25,7 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 1024*10
+#define SIZE 1024*1024
 #define BSize 64
 #define SBSize 256
 using namespace std;
@@ -1247,11 +1247,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	std::cout << endl;*/
 //	tree->destory(tree->getRoot(), NULL);
 	auto node = tree->getRoot();
-	while (node != nullptr)
-	{
-		std::cout << sizeof(node->GamaData) << "," << sizeof(node->tData);
-		
-	}
+	//while (node != nullptr)
+	//{
+	//	std::cout << sizeof(node->GamaData) << "," << sizeof(node->tData);
+	//	
+	//}
 	return 0;
 }
 
