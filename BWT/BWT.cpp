@@ -1,6 +1,7 @@
 // BWT.cpp : 定义控制台应用程序的入口点。
 //
-
+//#include "afx.h"
+//#include <afxwin.h>
 #include "stdafx.h"
 #include "math.h"
 #include <vector>
@@ -24,7 +25,7 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 1024*1024
+#define SIZE 1024*10
 #define BSize 64
 #define SBSize 256
 using namespace std;
@@ -1158,6 +1159,7 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 int _tmain(int argc, _TCHAR* argv[])
 {
 	//Todo mainpos
+//	CFile file;
 	clock_t start, end;
 	clock_t startall, endall;
 	double duration;
@@ -1167,20 +1169,24 @@ int _tmain(int argc, _TCHAR* argv[])
 	int* CTable = new int[CSize];
 	int posOfend;
 	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-	const char* strpath = "J:\\测试数据\\normal\\dna";
+	const char* strpath = "E:\\测试数据\\测试数据\\normal\\para";
+	//TCHAR* strpath = _T("E:\\测试数据\\测试数据\\normal\\english");
+	errno_t err;
+	//err = fopen_s(&fp, strpath, "r");
 	if (fopen_s(&fp, strpath, "r"))
 	{
 		printf("The file %s is not exist.", strpath);
 		return 0;
 	}
 	// ReSharper disable once CppEntityNeverUsed
-	auto err = fseek(fp, 0L, SEEK_END);
+	err = fseek(fp, 0L, SEEK_END);
+
 	long size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	size = size < SIZE ? size : SIZE;
 	unsigned char* list = new unsigned char[size];
 	// ReSharper disable once CppEntityNeverUsed
-	long count = fread(list, sizeof(char), size, fp);
+	long count = fread(list,sizeof(char), size,fp);
 	//unsigned char* inarray = new int[size];
 
 	//unsigned char* list = new unsigned char[size];
@@ -1240,6 +1246,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	std::cout << tree->Select('C', 10);
 	std::cout << endl;*/
 //	tree->destory(tree->getRoot(), NULL);
+	auto node = tree->getRoot();
+	while (node != nullptr)
+	{
+		std::cout << sizeof(node->GamaData) << "," << sizeof(node->tData);
+		
+	}
 	return 0;
 }
 
