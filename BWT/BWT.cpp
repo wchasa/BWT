@@ -25,9 +25,11 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 1024*1024
+#define SIZE 1024*1024*2
 #define BSize 64
+#define BRunlrnth 6
 #define SBSize 256
+#define  SBRunlenth 8
 using namespace std;
 
 class vectorBit
@@ -38,22 +40,32 @@ protected:
 public:
 	vectorBit()
 	{
+	//	tData.reserve(1024 * 1024);
 		Length = 0;
 	}
+	/*vectorBit(int length) :vectorBit()
+	{
+		tData.reserve(length);
+		
+	}*/
 	vectorBit(int length, byte val) :vectorBit()
 	{
 		byte val1 = val == 0 ? 0x00 : 0xFF;
-		int i1 = ceil(float(length) / 8);
-		//int i2 = length % 8;
+		//int i1 = ceil(float(length) / 8);
+		int i1 = (length >> 3) + ((length&0x7)==0?0:1);
 		Length = length;
 		vector<byte> temp(i1, val1);
 		tData = temp;
 	}
+	void reserve(int input)
+	{
+		tData.reserve(input >> 3);
+	}
 	void push_back(int input)
 	{
 
-		int i1 = Length / 8;
-		int i2 = Length % 8;
+		int i1 = Length >>3;//
+		int i2 = Length&0x7;//求8的模
 		if (i2 == 0)
 		{
 			tData.push_back(0);
@@ -68,8 +80,8 @@ public:
 	}
 	void push_back(vectorBit input)
 	{
-		int i1 = Length / 8;
-		int i2 = Length % 8;
+		int i1 = Length >> 3;//
+		int i2 = Length & 0x7;//求8的模
 		for (int i = 0; i < input.Length; i++)
 		{
 			if (i2 == 0)
@@ -110,15 +122,15 @@ public:
 	int vectorBit::operator[](int i){
 		if (i < 0 || i >= Length)
 			return 0;
-		int i1 = i / 8;
-		int i2 = i % 8;
+		int i1 = i >> 3;//
+		int i2 = i & 0x7;//求8的模
 		return (tData[i1] >> i2) & 0x01;
 	}
 	int vectorBit::pop_back(int i){
 		if (i < 0 || i >= Length)
 			return 0;
-		int i1 = i / 8;
-		int i2 = i % 8;
+		int i1 = i >> 3;//
+		int i2 = i & 0x7;//求8的模
 		return (tData[i1] >> i2) & 0x01;
 	}
 };
@@ -227,12 +239,13 @@ public:
 	public:
 	GamaCompressData()
 	{
+		
 		SBrank.push_back(0);
 		Brank.push_back(0);
 		SB.push_back(0);
 		B.push_back(0);
 	};
-	void CreateDate(vectorBit inarray)
+	void CreateDate(vectorBit& inarray)
 	{
 		int i;
 		int ranktemp;
@@ -260,7 +273,7 @@ public:
 
 //			AtlTrace("%d\n", Brank_s);
 			i += BSize;
-			if (i%SBSize != 0)
+			if (i>>SBRunlenth != 0)
 			{
 				Brank.push_back(Brank_s - SBrank_s_pre);
 				B.push_back(B_s - SB_s_pre);
@@ -475,7 +488,7 @@ public:
 		//waveletTreeNodeByBit* nodetemp = root;
 		int offset =GamaData.SB[(pos + 1) / SBSize] + GamaData.B[(pos + 1) / BSize];
 		int header = GamaData.gamaHeader[(pos + 1) / BSize];
-		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) % BSize);
+		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) >> BRunlrnth);
 		return  rankresult;
 	}
 	static int lrank(vectorBit s, int offset, int headertype, int mount) 
@@ -1160,6 +1173,8 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	//Todo mainpos
 //	CFile file;
+	//int a = -15, b = 15;
+	//printf("%d %d\n", a >> 2, (b >> 3) +( (b & 0x7) == 0 ? 0 : 1));
 	clock_t start, end;
 	clock_t startall, endall;
 	double duration;
