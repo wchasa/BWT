@@ -38,16 +38,16 @@ protected:
 	vector<byte> tData;
 	int Length;
 public:
+	
 	vectorBit()
 	{
-	//	tData.reserve(1024 * 1024);
 		Length = 0;
 	}
-	/*vectorBit(int length) :vectorBit()
+	vectorBit(int sizeInBit) :vectorBit()
 	{
-		tData.reserve(length);
 		
-	}*/
+		tData.resize((sizeInBit >> 3)+1, 0);
+	}
 	vectorBit(int length, byte val) :vectorBit()
 	{
 		byte val1 = val == 0 ? 0x00 : 0xFF;
@@ -56,57 +56,48 @@ public:
 		Length = length;
 		vector<byte> temp(i1, val1);
 		tData = temp;
+		tData.resize((length >> 3) + 1, val1);
 	}
 	void reserve(int input)
 	{
 		tData.reserve(input >> 3);
 	}
-	void push_back(int input)
+	int getcapacity() const
 	{
+		return tData.capacity();
+	}
+
+	/**
+	 * \brief push one bit into vectorBit
+	 * \param input 0 or 1,the value of this bit
+	 */
+	void push_back(int input)
+	{ 
 
 		int i1 = Length >>3;//
 		int i2 = Length&0x7;//求8的模
-		if (i2 == 0)
+		if (i1+1 > tData.size())
 		{
 			tData.push_back(0);
 		}
 		Length++;
 		tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
 	}
-	void push_back(int count, bool value)
-	{
-		for (int i = 0; i < count; i++)
-			this->push_back(value);
-	}
-	void push_back(vectorBit input)
-	{
-		int i1 = Length >> 3;//
-		int i2 = Length & 0x7;//求8的模
-		for (int i = 0; i < input.Length; i++)
-		{
-			if (i2 == 0)
-			{
-				tData.push_back(0);
-			}
-			Length++;
-			tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
-			if (i2++ == 7)
-			{
-				i2 = 0;
-				i1++;
-			}
-		}
-	}
+
+	void push_back(int count, bool value);
+
+	void push_back(vectorBit input);
+
 	vectorBit copy(int startpos, int count)
 	{
-		vectorBit temp;
+		vectorBit temp(count);
 		for (int i = 0; i < count; i++)
 			temp.push_back(pop_back(i + startpos));
 		return temp;
 	}
 	vectorBit copy()
 	{
-		vectorBit temp;
+		vectorBit temp(Length);
 		for (int i = 0; i < Length; i++)
 			temp.push_back(pop_back(i));
 		return temp;
@@ -114,6 +105,11 @@ public:
 	int size() const
 	{
 		return Length;
+	}
+	void resize(unsigned int newSizeInbit)
+	{
+		tData.resize((newSizeInbit >> 3) + 1);
+		//return Length;
 	}
 	void SetSize(int size) 
 	{
@@ -215,16 +211,27 @@ public:
 };
 class GAMACode
 {
+	vector<vectorBit> GamaCodeToBitVector;
 public:
+
 	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
 	//HEADERTYPE header;
 	//vectorBit Svector;
 	///根据inarray进行gama编码
 //	static vectorBit EncodeSingle(int Length);
-	static void EncodeSingle(vectorBit& outarray, int Length);
-	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
+	void EncodeSingle(vectorBit& outarray, int Length);
+	vectorBit EncodeSingle(const int& Length);
+	void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
 	///根据inarray进行gama译码
 	//	static void DecodeSingle()
+	void GenerateGamaCodeToBitVector()
+	{
+		if (GamaCodeToBitVector.size()>0)
+			return;
+		GamaCodeToBitVector.push_back(EncodeSingle(1));
+		for (int i = 1; i <= BSize; i++)
+			GamaCodeToBitVector.push_back(EncodeSingle(i));
+	}
 	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
 };
 class GamaCompressData
@@ -246,23 +253,28 @@ public:
 		B.push_back(0);
 	};
 	void CreateDate(vectorBit& inarray)
-	{
+	{		
+		GAMACode gama;
+		gamacode.resize(inarray.size());
+		gamaHeader.resize(inarray.size() << 1 + inarray.size());
+		gama.GenerateGamaCodeToBitVector();
 		int i;
 		int ranktemp;
 		int SBrank_s = 0, SB_s = 0, Brank_s = 0, B_s = 0, SBrank_s_pre = 0, SB_s_pre =0 ;
 		for (i = 0; i < inarray.size(); )
 		{
-			GAMACode gama;
-			vectorBit bitetemp;
+			
+			vectorBit bitetemp(BSize);
+			//bitetemp.resize(BSize);
 			GAMACode::HEADERTYPE headtemp;
 			vectorBit intemp = inarray.copy( i, BSize);
-			gama.Encode(intemp, headtemp, bitetemp);		
+			gama.Encode(intemp, headtemp, bitetemp);	
+			//AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", intemp.size(), bitetemp.size());
 			//////////////////////////////////////////////////
 			gamaHeader.push_back(static_cast<int>(headtemp));
 			gamacode.push_back(bitetemp);
 			//////////////////////////////////////////////////
 			B_s = bitetemp.size() + B_s;
-			
 			if (headtemp == GAMACode::ALL1)
 				ranktemp = BSize;
 			else if (headtemp == GAMACode::ALL0)
@@ -289,50 +301,36 @@ public:
 			}
 				
 			SBrank_s += ranktemp;
-			SB_s += ranktemp;
-			//if (i%SBSize == 0)
-			//{
-			//	SB_s_pre = SB_s;
-			//	SBrank_s_pre = SBrank_s;
-			//	SBrank.push_back(SBrank_s);
-			//	SB.push_back(SB_s);
-			//	B_s = 0;
-			//	Brank_s = 0;
-			//}
-		
+			SB_s += ranktemp;	
 		}
-		//if (i%SBSize != 0)
-		//{
-		//	SBrank.push_back(SBrank_s);
-		//	SB.push_back(SB_s);
-		//}
-
+		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size(), gamacode.size());
 	}
+	
 };
-class waveletTreeNodeByBit_C
-{
-	vectorBit tData;//store S
-	vector<vectorBit> headervector;//Sotre header use 3bit;
-	vector<unsigned int> SBrank;
-	vector<unsigned int> Brank;
-	vector<unsigned int> SB;
-	vector<unsigned int> B;
-};
-class waveletTreeByBit_C
-{
-	waveletTreeNodeByBit_C* root;
-public:
-	waveletTreeByBit_C() {
-		root = new waveletTreeNodeByBit_C();
-	}
-	//waveletTreeByBit(int alphbetCount) :waveletTreeByBit(){
-	//	//layer = (int)ceil(float(log2(alphbetCount))) + 1;
-	//}
-	waveletTreeNodeByBit_C* getRoot() const
-	{
-		return root;
-	}
-};
+//class waveletTreeNodeByBit_C
+//{
+//	vectorBit tData;//store S
+//	vector<vectorBit> headervector;//Sotre header use 3bit;
+//	vector<unsigned int> SBrank;
+//	vector<unsigned int> Brank;
+//	vector<unsigned int> SB;
+//	vector<unsigned int> B;
+//};
+//class waveletTreeByBit_C
+//{
+//	waveletTreeNodeByBit_C* root;
+//public:
+//	waveletTreeByBit_C() {
+//		root = new waveletTreeNodeByBit_C();
+//	}
+//	//waveletTreeByBit(int alphbetCount) :waveletTreeByBit(){
+//	//	//layer = (int)ceil(float(log2(alphbetCount))) + 1;
+//	//}
+//	waveletTreeNodeByBit_C* getRoot() const
+//	{
+//		return root;
+//	}
+//};
 struct waveletTreeNodeByBit
 {
 	vectorBit tData;
@@ -342,7 +340,7 @@ struct waveletTreeNodeByBit
 	waveletTreeNodeByBit *l, *r, *p;
 	waveletTreeNodeByBit(): ch(0)
 	{
-		
+		//tData(0);
 		l = nullptr;
 		r = nullptr;
 		p = nullptr;
@@ -385,6 +383,7 @@ public:
 	{
 		//map<unsigned char, int> allist;
 		unsigned int i;
+		wt.tData.resize(inarray.size());
 		vector<unsigned char> lCharArray, rCharArray;
 		typedef pair <unsigned char, int> In_Pair;
 		if (alphbetList.size()>1)
@@ -835,25 +834,67 @@ public:
 //	}
 //};
 
- void GAMACode::EncodeSingle(vectorBit& outarray, int Length)
+/**
+ * \brief push the number of count bits into vectorBit
+ * \param count 0 or 1,the value pushed is value
+ * \param value the number of bit pushed in
+ */
+void vectorBit::push_back(int count, bool value)
 {
-	int i;
-	//vectorBit outarray;
-	int size = log2(Length) + 1;
-	for (i = 0; i < size - 1; i++)
-	{
-		outarray.push_back(0);
-	}
-	for (i = 0; i < size; i++)
-	{
-		int t = (Length >> (size - i - 1)) & 0x01;
-		outarray.push_back(t);
-	}
-	//return outarray;
+	for (int i = 0; i < count; i++)
+		this->push_back(value);
+
 }
 
+void vectorBit::push_back(vectorBit input)
+{
+	int i1 = Length >> 3;//
+	int i2 = Length & 0x7;//求8的模
+	for (int i = 0; i < input.Length; i++)
+	{
+		//if (i2 == 0)
+		//{
+		//	tData.push_back(0);
+		//}
+		Length++;
+		tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
+		if (i2++ == 7)
+		{
+			i2 = 0;
+			i1++;
+		}
+	}
+}
+
+void GAMACode::EncodeSingle(vectorBit& outarray, int Length)
+{
+	int i;
+	int size = log2(Length) + 1;
+	outarray.push_back(this->GamaCodeToBitVector[Length]);
+}
+
+ vectorBit GAMACode::EncodeSingle(const int& RunLength)
+{
+
+	 int i;
+	 
+	 int size = log2(RunLength) + 1;
+	 vectorBit outarray(size<<1);
+	 for (i = 0; i < size - 1; i++)
+	 {
+		 outarray.push_back(0);
+	 }
+	 for (i = 0; i < size; i++)
+	 {
+		 int t = (RunLength >> (size - i - 1)) & 0x01;
+		 outarray.push_back(t);
+	 }
+	 //AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", RunLength, size * 2 -1);
+	return outarray;
+ }
 void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
 {
+	//AtlTrace("-------------------\n");
 	if (inarray.size() < 1)
 		return;
 	int compareNum = inarray[0];
@@ -870,10 +911,12 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		else
 		{
 			/*Outvector.push_back*/(EncodeSingle(Outvector, count));
+			//AtlTrace("count;%d\n", count);
 			//count = 1;
 			//	mount.push_back(count);
 			count = 1;
 			compareNum = inarray[i];
+			
 		}
 		if (inarray.size() <= Outvector.size())
 		{
@@ -898,6 +941,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		Outvector.SetSize(inarray.size());
 		Outvector = inarray.copy();
 	}
+	
 }
 
 /**
@@ -1171,6 +1215,10 @@ unsigned char access(waveletTree& tree, int pos, vector<unsigned char> alphbetVe
 //}
 int _tmain(int argc, _TCHAR* argv[])
 {
+	bool a = false, b = true;
+	long b1 = 0;
+	b1 = b | (a << 8) | b;
+	printf("%d ,%d\n", static_cast<int>(a), static_cast<int>(b));
 	//Todo mainpos
 //	CFile file;
 	//int a = -15, b = 15;
@@ -1184,7 +1232,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int* CTable = new int[CSize];
 	int posOfend;
 	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-	const char* strpath = "E:\\测试数据\\测试数据\\normal\\para";
+	const char* strpath = "E:\\测试数据\\测试数据\\normal\\dna";
 	//TCHAR* strpath = _T("E:\\测试数据\\测试数据\\normal\\english");
 	errno_t err;
 	//err = fopen_s(&fp, strpath, "r");
@@ -1241,9 +1289,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	tree->CounstructWaveletTree(BWTvector, alphbetVector, *tree->getRoot());
 	end = clock();
 	endall = clock();
-	duration = (double)(end - start) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 	printf("durationOF CounstructWaveletTree %f\n", duration);
-	duration = (double)(endall - startall) / CLOCKS_PER_SEC;
+	duration = static_cast<double>(endall - startall) / CLOCKS_PER_SEC;
 	printf("durationOF ALlProcess %f\n", duration);
 	/*for (int i = 0; i < length; i++)
 	{
@@ -1263,10 +1311,10 @@ int _tmain(int argc, _TCHAR* argv[])
 //	tree->destory(tree->getRoot(), NULL);
 	auto node = tree->getRoot();
 	//while (node != nullptr)
-	//{
-	//	std::cout << sizeof(node->GamaData) << "," << sizeof(node->tData);
-	//	
-	//}
+	{
+		std::cout << sizeof(node->GamaData.gamacode.size()) << "," << sizeof(node->tData.size());
+		
+	}
 	return 0;
 }
 
