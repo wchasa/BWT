@@ -299,12 +299,16 @@ public:
 			SBrank_s += ranktemp;
 			SB_s += ranktemp;	
 		}
-		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size(), gamacode.size());
+		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size(), GetSize());
 	}
 	void ResizeToRealsize()
 	{
 		gamacode.resizeToRealSize();
 		gamaHeader.resizeToRealSize();
+	}
+	int GetSize() const
+	{
+		return gamaHeader.size() >> 3 + gamacode.size() >> 3 + SBrank.size() + Brank.size()+SB.size()+B.size();
 	}
 };
 //class waveletTreeNodeByBit_C
