@@ -29,7 +29,7 @@ typedef long long TIME_T;
 #define BSize 64
 #define BRunlength 6
 #define SBSize 256
-#define  SBRunlength 8
+#define SBRunlength 8
 using namespace std;
 
 class vectorBit
@@ -38,7 +38,11 @@ protected:
 	vector<byte> tData;
 	int Length;
 public:
-	
+	static vectorBit ConstructABit(int value, int length)
+	{
+		vectorBit temp;
+
+	}
 	vectorBit()
 	{
 		Length = 0;
@@ -77,14 +81,14 @@ public:
 		vectorBit temp(count);
 		count = Length> startpos + count ? count : Length - startpos;
 		for (int i = 0; i < count; i++)
-			temp.push_back(pop_back(i + startpos));
+			temp.push_back(at(i + startpos));
 		return temp;
 	}
 	vectorBit copy()
 	{
 		vectorBit temp(Length);
 		for (int i = 0; i < Length; i++)
-			temp.push_back(pop_back(i));
+			temp.push_back(at(i));
 		return temp;
 	}
 	int size() const
@@ -112,7 +116,7 @@ public:
 		int i2 = i & 0x7;//Çó8µÄÄ£
 		return (tData[i1] >> i2) & 0x01;
 	}
-	int vectorBit::pop_back(int i){
+	int vectorBit::at(int i){
 		if (i < 0 || i >= Length)
 			return 0;
 		int i1 = i >> 3;//
@@ -192,18 +196,19 @@ public:
 	int vectorBitHeader::operator[](int i)
 	{
 		int pos = i * 3;
-		int result = vectorBit::pop_back(pos++);
-		result = (result << 1) + vectorBit::pop_back(pos++);
-		result = (result << 1) + pop_back(pos++);
-		//result = (result << 1) + vectorBit::pop_back(pos++);
+		int result = vectorBit::at(pos++);
+		result = (result << 1) + vectorBit::at(pos++);
+		result = (result << 1) + at(pos++);
+		//result = (result << 1) + vectorBit::at(pos++);
 		return result;
 	}
 };
+typedef  tuple < int, int, int, int > lookUpTableElement;
 class GAMACode
 {
 	vector<vectorBit> GamaCodeToBitVector;
+	vector<lookUpTableElement> lookupTableOfR;
 public:
-
 	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
 	//HEADERTYPE header;
 	//vectorBit Svector;
@@ -222,6 +227,16 @@ public:
 		for (int i = 1; i <= BSize; i++)
 			GamaCodeToBitVector.push_back(EncodeSingle(i));
 	}
+	void GeneratelookupTableOfR()
+	{
+		if (lookupTableOfR.size()>0)
+			return;
+		int r1, r2, r3, r4;
+		//todo GeneratelookupTableOfR
+	//	lookupTableOfR.push_back();
+		for (int i = 1; i <= BSize; i++)
+			GamaCodeToBitVector.push_back(EncodeSingle(i));
+	}
 	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
 };
 class GamaCompressData
@@ -230,13 +245,12 @@ public:
 	vectorBitHeader gamaHeader;
 	vectorBit		gamacode;
 	vector<int>		SBrank;
-	vector<int>		Brank;
+	vector<byte>	Brank;
 	vector<int>		SB;
-	vector<int>		B;
+	vector<byte>	B;
 	public:
 	GamaCompressData()
 	{
-		
 		SBrank.push_back(0);
 		Brank.push_back(0);
 		SB.push_back(0);
@@ -299,7 +313,7 @@ public:
 			SBrank_s += ranktemp;
 			SB_s += ranktemp;	
 		}
-		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size(), GetSize());
+		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size()>>3, GetSize());
 	}
 	void ResizeToRealsize()
 	{
@@ -308,7 +322,7 @@ public:
 	}
 	int GetSize() const
 	{
-		return gamaHeader.size() >> 3 + gamacode.size() >> 3 + SBrank.size() + Brank.size()+SB.size()+B.size();
+		return (gamaHeader.size() >> 3) + (gamacode.size() >> 3) + SBrank.size() + Brank.size()+SB.size()+B.size();
 	}
 };
 //class waveletTreeNodeByBit_C
@@ -473,7 +487,7 @@ public:
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
 		int ipos = pos;
-		typedef pair <unsigned char, int> In_Pair;
+		//typedef pair <unsigned char, int> In_Pair;
 		while (nodetemp->l != nullptr)
 		{
 			//Divedepos = i;
@@ -491,7 +505,31 @@ public:
 		return ipos;
 
 	}
-	static int rankOfCurrentGama(const int& pos, GamaCompressData& GamaData/*, const vector<unsigned char> alphbetList*/)
+	int RankOFGama(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/) const
+	{
+		waveletTreeNodeByBit* nodetemp = root;
+		if (!ContainChar(nodetemp->allist, c))
+			return -1;
+		int ipos = pos;
+		//typedef pair <unsigned char, int> In_Pair;
+		while (nodetemp->l != nullptr)
+		{
+			//Divedepos = i;
+			if (nodetemp->allist[c] == 0) //c is 0
+			{
+				ipos = ipos - rankOfCurrentGama(nodetemp->GamaData, ipos);
+				nodetemp = nodetemp->l;
+			}
+			else//c is 1
+			{
+				ipos = rankOfCurrentGama(nodetemp->GamaData, ipos);
+				nodetemp = nodetemp->r;
+			}
+		}
+		return ipos;
+
+	}
+	static int rankOfCurrentGama(GamaCompressData& GamaData,const int& pos /*, const vector<unsigned char> alphbetList*/)
 	{
 		//waveletTreeNodeByBit* nodetemp = root;
 		int offset =GamaData.SB[(pos + 1) / SBSize] + GamaData.B[(pos + 1) / BSize];
@@ -917,7 +955,6 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	if (inarray.size() < 1)
 		return;
 	int compareNum = inarray[0];
-	//vector<int> mount;
 	if (compareNum == 1)	
 		header = RLG1;
 	else
@@ -929,10 +966,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 			count++;
 		else
 		{
-			/*Outvector.push_back*/(EncodeSingle(Outvector, count));
-			//AtlTrace("count;%d\n", count);
-			//count = 1;
-			//	mount.push_back(count);
+			EncodeSingle(Outvector, count);
 			count = 1;
 			compareNum = inarray[i];
 			
@@ -943,7 +977,6 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 			Outvector.SetSize(0);
 			Outvector = inarray.copy();
 			return;
-			//break;
 		}
 	}
 	if (count == inarray.size())//ALL 0/1
@@ -1237,7 +1270,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	bool a = false, b = true;
 	long b1 = 0;
 	b1 = b | (a << 8) | b;
-	printf("%d ,%d\n", static_cast<int>(a), static_cast<int>(b));
+	printf("%d ,%d\n", sizeof(int), static_cast<int>(b));
 	//Todo mainpos
 //	CFile file;
 	//int a = -15, b = 15;
@@ -1301,7 +1334,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int alCount = Calcdelt(list, alphbetList, length);
 	quick_sort(alphbetList, 0, alCount-1);
 //	waveletTree* tree = new waveletTree(alCount);
-	waveletTreeByBit* tree = new waveletTreeByBit(alCount);
+	waveletTreeByBit* tree = new waveletTreeByBit();
 	vector<unsigned char> alphbetVector(alphbetList, alphbetList + alCount);
 	vector<unsigned char> BWTvector(BWT, BWT + length);
 	start = clock();
@@ -1329,11 +1362,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	std::cout << endl;*/
 //	tree->destory(tree->getRoot(), NULL);
 	auto node = tree->getRoot();
-	//while (node != nullptr)
+	/*for (int i = 0; i < size;i++)
 	{
-		std::cout << node->GamaData.gamacode.size() << "," << node->tData.size();
-		
-	}
+		if (tree->Rank(a, i) != tree->RankOFGama(a, i))
+			AtlTrace("%d\n",i);
+	}*/
+	//ranktest
+	//tree.ra
+
 	return 0;
 }
 
