@@ -32,102 +32,255 @@ typedef long long TIME_T;
 #define SBRunlength 8
 using namespace std;
 
-class vectorBit
+int assembly_popcnt(unsigned int n)
+{
+#ifdef _MSC_VER /* Intel style assembly */
+	__asm popcnt eax, n;
+#elif __GNUC__ /* AT&T style assembly */
+	__asm__("popcnt %0,%%eax"::"r"(n));
+#else
+# error "which assembly style does your compiler support, Intel or AT&T?"
+#endif
+}
+class vectorBitSingle
 {
 protected:
 	vector<byte> tData;
-	int Length;
+	int CurrentPos;
 public:
-	static vectorBit ConstructABit(int value, int length)
+	static vectorBitSingle ConstructABit(int value, int length)
 	{
-		vectorBit temp;
+	//	vectorBitSingle temp;
 
 	}
-	vectorBit()
+	vectorBitSingle()
 	{
-		Length = 0;
+		CurrentPos = 0;
 	}
-	vectorBit(int sizeInBit) :vectorBit()
+	vectorBitSingle(int sizeInBit) :vectorBitSingle()
 	{
 		tData.resize((sizeInBit >> 3)+1, 0);
 	}
-	vectorBit(int length, byte val) :vectorBit()
+	vectorBitSingle(int length, byte val) :vectorBitSingle()
 	{
 		byte val1 = val == 0 ? 0x00 : 0xFF;
 		//int i1 = ceil(float(length) / 8);
 		int i1 = (length >> 3) + ((length&0x7)==0?0:1);
-		Length = length;
+		CurrentPos = length;
 		vector<byte> temp(i1, val1);
 		tData = temp;
 		tData.resize((length >> 3) + 1, val1);
 	}
-	void reserve(int input)
-	{
-		tData.reserve(input >> 3);
-	}
+
+	void reserve(int input);
+
 	int getcapacity() const
 	{
 		return tData.capacity();
 	}
 	/**
-	 * \brief push one bit into vectorBit
+	 * \brief push one bit into vectorBitSingle
 	 * \param input 0 or 1,the value of this bit
 	 */
 	void push_back(int input);
 	void push_back(int count, bool value);
-	void push_back(vectorBit input);
-	vectorBit copy(int startpos, int count)
+	void push_back(vectorBitSingle input);
+	vectorBitSingle copy(int startpos, int count)
 	{
-		vectorBit temp(count);
-		count = Length> startpos + count ? count : Length - startpos;
+		vectorBitSingle temp(count);
+		count = CurrentPos> startpos + count ? count : CurrentPos - startpos;
 		for (int i = 0; i < count; i++)
 			temp.push_back(at(i + startpos));
 		return temp;
 	}
-	vectorBit copy()
+	vectorBitSingle copy()
 	{
-		vectorBit temp(Length);
-		for (int i = 0; i < Length; i++)
+		vectorBitSingle temp(CurrentPos);
+		for (int i = 0; i < CurrentPos; i++)
 			temp.push_back(at(i));
 		return temp;
 	}
 	int size() const
 	{
-		return Length;
+		return CurrentPos;
 	}
 	void resize(unsigned int newSizeInbit)
 	{
 		tData.resize((newSizeInbit >> 3) + 1);
-		//return Length;
+		//return CurrentPos;
 	}
 	void resizeToRealSize()
 	{
-		tData.resize((Length >> 3) + 1);
-		//return Length;
+		tData.resize((CurrentPos >> 3) + 1);
+		//return CurrentPos;
 	}
-	void SetSize(int size) 
+	void SetPos(int size) 
 	{
-		Length = size;
+		CurrentPos = size;
 	}
-	int vectorBit::operator[](int i){
-		if (i < 0 || i >= Length)
-			return 0;
-		int i1 = i >> 3;//
-		int i2 = i & 0x7;//求8的模
-		return (tData[i1] >> i2) & 0x01;
+	int vectorBitSingle::operator[](int i){
+		return tData.at(i);
 	}
-	int vectorBit::at(int i){
-		if (i < 0 || i >= Length)
+	int vectorBitSingle::at(int i){
+		if (i < 0 || i >= CurrentPos)
 			return 0;
-		int i1 = i >> 3;//
-		int i2 = i & 0x7;//求8的模
-		return (tData[i1] >> i2) & 0x01;
+		int currentPosInVectorByte = i >> 3;//
+		int currentPosInByte = i & 0x7;//求8的模
+		return (tData[currentPosInVectorByte] >> currentPosInByte) & 0x01;
 	}
 };
+//the number of bitcapacity must small than 64;
+template <int bitcapacity>
+class vectorBit /*:public vectorBitSingle*/
+{
+protected:
+	vector<byte> tData;
+	int CurrentPos;//denote this is the CurrentPos,th int the vector
+//private:
+public:
+	static vectorBit ConstructABit(int value, int length)
+	{
+		//	vectorBitSingle temp;
+
+	}
+	vectorBit()
+	{
+		CurrentPos = 0;
+	}
+	vectorBit(int vectorsize) :vectorBit()
+	{
+		tData.resize(((getLengthInByte()) >> 3) + 1, 0);
+	}
+	///
+//	vectorBit(int vectorsize, byte val);
+//	void reserve(int input) ;
+	int getcapacity() const
+	{
+		//(tData.capacity() << 3) / bitcapacity)
+		return ((tData.capacity() << 3) / bitcapacity) + ((tData.capacity() << 3) % bitcapacity == 0 ? 0 : 1);
+	}
+	/**
+	* \brief push one bit into vectorBitSingle
+	* \param input 0 or 1,the value of this bit
+	*/
+	public:
+		void push_back(bool input)
+		{
+			int currentPosInVectorByte = getLengthInByte() >> 3;//
+			int currentPosInByte = getLengthInByte() & 0x7;//求8的模
+			if (currentPosInVectorByte + 1 > tData.size())
+			{
+				tData.push_back(0);
+			}
+			CurrentPos++;
+			tData[currentPosInVectorByte] = input ? setbit(tData[currentPosInVectorByte], currentPosInByte) : clrbit(tData[currentPosInVectorByte], currentPosInByte);
+		}
+
+		void push_back(UINT64 input)
+		{
+			const int TheLogicAndNumberArray[] = { 0,1,3,7,15,31,63,127,255 };
+			int currentPosInVectorByte = getLengthInByte() >> 3;
+			int currentPosInByte = getLengthInByte() & 0x7;
+			byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
+			tData[currentPosInVectorByte] = tData[currentPosInVectorByte] | (lowByte << currentPosInByte);
+			//currentPosInByte = 0;
+			currentPosInVectorByte++;
+			input = input >> (8 - currentPosInByte);
+			int i = 8 - currentPosInByte;//i denote the mount of bit pushed into the vector;
+			for (; i < bitcapacity; i += 8)
+			{
+				tData[currentPosInVectorByte++] = input&TheLogicAndNumberArray[8];
+				input = input >> 8;
+			}
+			//currentPosInByte = ((bitcapacity & 0x07) + currentPosInByte) & 0x07;//new 
+			CurrentPos++;
+		}
+		inline int getLengthInByte() const
+		{
+			return  CurrentPos*bitcapacity;
+		}
+	//	void push_back(vectorBit input);
+		/*vectorBit copy(int startpos, int count)
+	{
+		count *= bitcapacity;
+		vectorBit temp(count);
+		count = CurrentPos> startpos + count ? count : CurrentPos - startpos;
+		for (int i = 0; i < count; i++)
+			temp.push_back(at(i + startpos));
+		return temp;
+	}*/
+		vectorBit copy()
+	{
+			vectorBit temp(CurrentPos);
+		for (int i = 0; i < CurrentPos; i++)
+			temp.push_back(at(i));
+		return temp;
+	}
+	int size() const
+	{
+		return CurrentPos;
+	}
+	void resize(unsigned int newSize)
+	{
+		tData.resize(((newSize*bitcapacity) >> 3) + 1);
+		//return CurrentPos;
+	}
+	void resizeToRealSize()
+	{
+		tData.resize((getLengthInByte() >> 3) + 1);
+		//return CurrentPos;
+	}
+	void SetPos(int size)
+	{
+		CurrentPos = size;
+	}
+	UINT64 vectorBit::operator[](int i){
+		return at(i);
+	}
+	UINT64 vectorBit::at(int i){
+		if (i < 0 || i >= CurrentPos)
+			return 0;
+		const int TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
+
+
+
+		int currentPosInVectorByte = getLengthInByte() >> 3;
+		int currentPosInByte = getLengthInByte() & 0x7;
+		byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
+		tData[currentPosInVectorByte] = tData[currentPosInVectorByte] | (lowByte << currentPosInByte);
+		//currentPosInByte = 0;
+		currentPosInVectorByte++;
+		input = input >> (8 - currentPosInByte);
+		int i = 8 - currentPosInByte;//i denote the mount of bit pushed into the vector;
+		for (; i < bitcapacity; i += 8)
+		{
+			tData[currentPosInVectorByte++] = input&TheLogicAndNumberArray[8];
+			input = input >> 8;
+		}
+		//currentPosInByte = ((bitcapacity & 0x07) + currentPosInByte) & 0x07;//new 
+
+
+		//int i1 = i >> 3;//
+		//int i2 = i & 0x7;//求8的模
+		//return (tData[i1] >> i2) & 0x01;
+		UINT64 temp;
+		
+		return temp;
+	}
+};
+
+/**
+ * \brief Set all 0/1 vector
+ * \param vectorsize vector size
+ * \param val 0 or 1
+ */
+
+
+
 class BaisOperate
 {
 public:
-	static int rank1(vectorBit inarray,int pos)
+	static int rank1(vectorBitSingle inarray,int pos)
 	{
 		int count = 0;
 		pos = pos < inarray.size() ? pos : inarray.size();
@@ -136,7 +289,7 @@ public:
 				count++;
 		return count;
 	}
-	static int rank1(vectorBit inarray,int startpos, int mount)
+	static int rank1(vectorBitSingle inarray,int startpos, int mount)
 	{
 		int count = 0;
 		int endpos = startpos + mount;
@@ -150,44 +303,44 @@ public:
 /**
  * \brief Header vector
  */
-class vectorBitHeader :public vectorBit
+class vectorBitHeader :public vectorBitSingle
 {
 public:
 	void push_back(int input)
 	{
-		//int i1 = Length / 8;
+		//int i1 = CurrentPos / 8;
 		//
 		switch (input)
 		{
 		case 0: 
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
 			break;
 		case 1:
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(1);
 			break;
 		case 2:
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(0);
 			break;
 		case 3:
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
-			vectorBit::push_back(1);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(1);
 			break;
 		case 4:
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
-			vectorBit::push_back(0);
+			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
 			break;
 		case 5:
-			vectorBit::push_back(1);
-			vectorBit::push_back(0);
-			vectorBit::push_back(1);
+			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(1);
 			break;
 		default:
 			return;
@@ -195,28 +348,28 @@ public:
 	}
 	int vectorBitHeader::operator[](int i)
 	{
-		int pos = i * 3;
-		int result = vectorBit::at(pos++);
-		result = (result << 1) + vectorBit::at(pos++);
+		int pos = i * 3+3;
+		int result = vectorBitSingle::at(pos++);
+		result = (result << 1) + vectorBitSingle::at(pos--);
 		result = (result << 1) + at(pos++);
-		//result = (result << 1) + vectorBit::at(pos++);
+		//result = (result << 1) + vectorBitSingle::at(pos++);
 		return result;
 	}
 };
 typedef  tuple < int, int, int, int > lookUpTableElement;
 class GAMACode
 {
-	vector<vectorBit> GamaCodeToBitVector;
+	vector<vectorBitSingle> GamaCodeToBitVector;
 	vector<lookUpTableElement> lookupTableOfR;
 public:
 	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
 	//HEADERTYPE header;
-	//vectorBit Svector;
+	//vectorBitSingle Svector;
 	///根据inarray进行gama编码
-//	static vectorBit EncodeSingle(int Length);
-	void EncodeSingle(vectorBit& outarray, int Length);
-	vectorBit EncodeSingle(const int& Length);
-	void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
+//	static vectorBitSingle EncodeSingle(int CurrentPos);
+	void EncodeSingle(vectorBitSingle& outarray, int Length);
+	vectorBitSingle EncodeSingle(const int& Length);
+	void Encode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector);
 	///根据inarray进行gama译码
 	//	static void DecodeSingle()
 	void GenerateGamaCodeToBitVector()
@@ -232,18 +385,19 @@ public:
 		if (lookupTableOfR.size()>0)
 			return;
 		int r1, r2, r3, r4;
+
 		//todo GeneratelookupTableOfR
 	//	lookupTableOfR.push_back();
 		for (int i = 1; i <= BSize; i++)
 			GamaCodeToBitVector.push_back(EncodeSingle(i));
 	}
-	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
+	static void Decode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector, int length);
 };
 class GamaCompressData
 {
 public:
 	vectorBitHeader gamaHeader;
-	vectorBit		gamacode;
+	vectorBitSingle		gamacode;
 	vector<int>		SBrank;
 	vector<byte>	Brank;
 	vector<int>		SB;
@@ -256,7 +410,7 @@ public:
 		SB.push_back(0);
 		B.push_back(0);
 	};
-	void CreateDate(vectorBit& inarray)
+	void CreateDate(vectorBitSingle& inarray)
 	{		
 		GAMACode gama;
 		gamacode.resize(inarray.size());
@@ -274,10 +428,10 @@ public:
 		for (i = 0; i < inarray.size(); )
 		{
 			
-			vectorBit bitetemp(BSize);
+			vectorBitSingle bitetemp(BSize);
 			//bitetemp.resize(BSize);
 			GAMACode::HEADERTYPE headtemp;
-			vectorBit intemp = inarray.copy( i, BSize);
+			vectorBitSingle intemp = inarray.copy( i, BSize);
 			gama.Encode(intemp, headtemp, bitetemp);	
 			//AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", intemp.size(), bitetemp.size());
 			//////////////////////////////////////////////////
@@ -327,8 +481,8 @@ public:
 };
 //class waveletTreeNodeByBit_C
 //{
-//	vectorBit tData;//store S
-//	vector<vectorBit> headervector;//Sotre header use 3bit;
+//	vectorBitSingle tData;//store S
+//	vector<vectorBitSingle> headervector;//Sotre header use 3bit;
 //	vector<unsigned int> SBrank;
 //	vector<unsigned int> Brank;
 //	vector<unsigned int> SB;
@@ -351,7 +505,7 @@ public:
 //};
 struct waveletTreeNodeByBit
 {
-	vectorBit tData;
+	vectorBitSingle tData;
 	map<unsigned char, int> allist;
 	char ch;
 	GamaCompressData GamaData;
@@ -437,7 +591,7 @@ public:
 		}
 		else
 		{
-			vectorBit vector(static_cast<int>(inarray.size()), '1');
+			vectorBitSingle vector(static_cast<int>(inarray.size()), '1');
 			wt.tData = vector;
 			wt.ch = inarray[0];
 		}
@@ -537,7 +691,7 @@ public:
 		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) >> BRunlength);
 		return  rankresult;
 	}
-	static int lrank(vectorBit s, int offset, int headertype, int mount) 
+	static int lrank(vectorBitSingle s, int offset, int headertype, int mount) 
 	{
 		bool bval;
 		//const int compareNum =0;
@@ -625,7 +779,7 @@ public:
 		return postCur - 1;
 	}
 
-	static int rank1(vectorBit L, int pos)
+	static int rank1(vectorBitSingle L, int pos)
 	{
 		int icount = 0;
 		for (int i = 0; i < (pos<L.size() ? pos : L.size()); i++)
@@ -635,7 +789,7 @@ public:
 		}
 		return icount;
 	}
-	static int rank1(vectorBit L, int start, int pos)
+	static int rank1(vectorBitSingle L, int start, int pos)
 	{
 		int icount = 0;
 		for (int i = start; i < (pos<L.size() ? pos : L.size()); i++)
@@ -867,53 +1021,58 @@ public:
 //public:
 //	enum HEADERTYPE{ Plain, RLG0, RLG1, ALL0, ALL1 };
 //	//HEADERTYPE header;
-//	//vectorBit Svector;
+//	//vectorBitSingle Svector;
 //	///根据inarray进行gama编码
-//	static vectorBit EncodeSingle(int Length);
-//	static void Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector);
+//	static vectorBitSingle EncodeSingle(int CurrentPos);
+//	static void Encode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector);
 //	///根据inarray进行gama译码
 //	//	static void DecodeSingle()
-//	static void Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length);
+//	static void Decode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector, int length);
 //	///inarray为s
-//	static void Rank(vectorBit inarray, int offset, HEADERTYPE Head,int loffset)
+//	static void Rank(vectorBitSingle inarray, int offset, HEADERTYPE Head,int loffset)
 //	{
 //		
 //	}
 //};
 
-void vectorBit::push_back(int input)
+void vectorBitSingle::reserve(int input)
 {
-	int i1 = Length >> 3;//
-	int i2 = Length & 0x7;//求8的模
+	tData.reserve(input >> 3);
+}
+
+void vectorBitSingle::push_back(int input)
+{
+	int i1 = CurrentPos >> 3;//
+	int i2 = CurrentPos & 0x7;//求8的模
 	if (i1 + 1 > tData.size())
 	{
 		tData.push_back(0);
 	}
-	Length++;
+	CurrentPos++;
 	tData[i1] = input ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
 }/**
- * \brief push the number of count bits into vectorBit
+ * \brief push the number of count bits into vectorBitSingle
  * \param count 0 or 1,the value pushed is value
  * \param value the number of bit pushed in
  */
-void vectorBit::push_back(int count, bool value)
+void vectorBitSingle::push_back(int count, bool value)
 {
 	for (int i = 0; i < count; i++)
 		this->push_back(value);
 
 }
 
-void vectorBit::push_back(vectorBit input)
+void vectorBitSingle::push_back(vectorBitSingle input)
 {
-	int i1 = Length >> 3;//
-	int i2 = Length & 0x7;//求8的模
-	for (int i = 0; i < input.Length; i++)
+	int i1 = CurrentPos >> 3;//
+	int i2 = CurrentPos & 0x7;//求8的模
+	for (int i = 0; i < input.CurrentPos; i++)
 	{
 		//if (i2 == 0)
 		//{
 		//	tData.push_back(0);
 		//}
-		Length++;
+		CurrentPos++;
 		tData[i1] = input[i] ? setbit(tData[i1], i2) : clrbit(tData[i1], i2);
 		if (i2++ == 7)
 		{
@@ -923,20 +1082,20 @@ void vectorBit::push_back(vectorBit input)
 	}
 }
 
-void GAMACode::EncodeSingle(vectorBit& outarray, int Length)
+void GAMACode::EncodeSingle(vectorBitSingle& outarray, int Length)
 {
 	int i;
 	int size = log2(Length) + 1;
 	outarray.push_back(this->GamaCodeToBitVector[Length]);
 }
 
- vectorBit GAMACode::EncodeSingle(const int& RunLength)
+ vectorBitSingle GAMACode::EncodeSingle(const int& RunLength)
 {
 
 	 int i;
 	 
 	 int size = log2(RunLength) + 1;
-	 vectorBit outarray(size<<1);
+	 vectorBitSingle outarray(size<<1);
 	 for (i = 0; i < size - 1; i++)
 	 {
 		 outarray.push_back(0);
@@ -949,7 +1108,7 @@ void GAMACode::EncodeSingle(vectorBit& outarray, int Length)
 	 //AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", RunLength, size * 2 -1);
 	return outarray;
  }
-void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector)
+void GAMACode::Encode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector)
 {
 	//AtlTrace("-------------------\n");
 	if (inarray.size() < 1)
@@ -974,7 +1133,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		if (inarray.size() <= Outvector.size())
 		{
 			header = Plain;
-			Outvector.SetSize(0);
+			Outvector.SetPos(0);
 			Outvector = inarray.copy();
 			return;
 		}
@@ -982,7 +1141,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	if (count == inarray.size())//ALL 0/1
 	{
 		header = header == RLG1 ? ALL1 : ALL0;
-		Outvector.SetSize(0);
+		Outvector.SetPos(0);
 		return;
 	}
 	EncodeSingle(Outvector, count);
@@ -990,7 +1149,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 	if (inarray.size() < Outvector.size())//plain
 	{
 		header = Plain;
-		Outvector.SetSize(inarray.size());
+		Outvector.SetPos(inarray.size());
 		Outvector = inarray.copy();
 	}
 	
@@ -1003,7 +1162,7 @@ void GAMACode::Encode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
  * \param Outvector 
  * \param length 
  */
-void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvector, int length)
+void GAMACode::Decode(vectorBitSingle inarray, HEADERTYPE& header, vectorBitSingle& Outvector, int length)
 {
 	bool bval;
 	//const int compareNum =0;
@@ -1040,10 +1199,10 @@ void GAMACode::Decode(vectorBit inarray, HEADERTYPE& header, vectorBit& Outvecto
 		}
 		break;
 	case HEADERTYPE::ALL0:
-		Outvector = *(new vectorBit(length, 0));
+		Outvector = *(new vectorBitSingle(length, 0));
 		break;
 	case HEADERTYPE::ALL1:
-		Outvector = *(new vectorBit(length, 1));
+		Outvector = *(new vectorBitSingle(length, 1));
 		break;
 	default: break;
 	}
@@ -1246,7 +1405,7 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 //int main()
 //{
 //	//Todo mainpos
-//	vectorBit v,v1,v2;
+//	vectorBitSingle v,v1,v2;
 //	v.push_back(0);	v.push_back(0);	v.push_back(1);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0); v.push_back(0);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0);
 //	v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0);
 //	v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1); v.push_back(1);
@@ -1265,12 +1424,15 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 //		AtlTrace("Rank(%d) =  %d \n", i,r);
 //	}
 //}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
+	unsigned int n = 0x84158225;
+	int i = assembly_popcnt(n);
 	bool a = false, b = true;
 	long b1 = 0;
 	b1 = b | (a << 8) | b;
-	printf("%d ,%d\n", sizeof(int), static_cast<int>(b));
+	printf("%d ,%d\n", sizeof(int), assembly_popcnt(n));
 	//Todo mainpos
 //	CFile file;
 	//int a = -15, b = 15;
