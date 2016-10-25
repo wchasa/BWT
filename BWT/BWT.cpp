@@ -13,6 +13,7 @@
 #include <string>
 #include <stdlib.h>
 #include <time.h>
+#include <bitset>
 //#include <atltrace.h>
 #if defined(WIN32)
 # define  TIMEB     _timeb
@@ -31,7 +32,7 @@ typedef long long TIME_T;
 #define SBSize 256
 #define SBRunlength 8
 using namespace std;
-
+byte TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
 int assembly_popcnt(unsigned int n)
 {
 #ifdef _MSC_VER /* Intel style assembly */
@@ -136,12 +137,24 @@ class vectorBit /*:public vectorBitSingle*/
 protected:
 	vector<byte> tData;
 	int CurrentPos;//denote this is the CurrentPos,th int the vector
-//private:
+	//int TheLogicAndNumberArray[8] ;
+private:
+	void push_backSingle(bool input)
+	{
+		int currentPosInVectorByte = getLengthInBit() >> 3;//
+		int currentPosInByte = getLengthInBit() & 0x7;//求8的模
+		if (currentPosInVectorByte + 1 > tData.size())
+		{
+			tData.push_back(0);
+		}
+		CurrentPos++;
+		tData[currentPosInVectorByte] = input ? setbit(tData[currentPosInVectorByte], currentPosInByte) : clrbit(tData[currentPosInVectorByte], currentPosInByte);
+	}
 public:
 	static vectorBit ConstructABit(int value, int length)
 	{
 		//	vectorBitSingle temp;
-
+		//TheLogicAndNumberArray = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
 	}
 	vectorBit()
 	{
@@ -149,7 +162,7 @@ public:
 	}
 	vectorBit(int vectorsize) :vectorBit()
 	{
-		tData.resize(((getLengthInByte()) >> 3) + 1, 0);
+		tData.resize(((getLengthInBit()) >> 3) + 1, 0);
 	}
 	///
 //	vectorBit(int vectorsize, byte val);
@@ -164,24 +177,19 @@ public:
 	* \param input 0 or 1,the value of this bit
 	*/
 	public:
-		void push_back(bool input)
+		
+
+		void  push_back(UINT64 input)
 		{
-			int currentPosInVectorByte = getLengthInByte() >> 3;//
-			int currentPosInByte = getLengthInByte() & 0x7;//求8的模
-			if (currentPosInVectorByte + 1 > tData.size())
+			//const int TheLogicAndNumberArray[] = { 0,1,3,7,15,31,63,127,255 };
+			int currentPosInVectorByte = getLengthInBit() >> 3;
+			int currentPosInByte = getLengthInBit() & 0x7;
+			byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
+			int size = tData.size();
+			for (;getLengthInBit()+bitcapacity >= size<<3; size++)
 			{
 				tData.push_back(0);
 			}
-			CurrentPos++;
-			tData[currentPosInVectorByte] = input ? setbit(tData[currentPosInVectorByte], currentPosInByte) : clrbit(tData[currentPosInVectorByte], currentPosInByte);
-		}
-
-		void push_back(UINT64 input)
-		{
-			const int TheLogicAndNumberArray[] = { 0,1,3,7,15,31,63,127,255 };
-			int currentPosInVectorByte = getLengthInByte() >> 3;
-			int currentPosInByte = getLengthInByte() & 0x7;
-			byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
 			tData[currentPosInVectorByte] = tData[currentPosInVectorByte] | (lowByte << currentPosInByte);
 			//currentPosInByte = 0;
 			currentPosInVectorByte++;
@@ -195,7 +203,7 @@ public:
 			//currentPosInByte = ((bitcapacity & 0x07) + currentPosInByte) & 0x07;//new 
 			CurrentPos++;
 		}
-		inline int getLengthInByte() const
+		inline int getLengthInBit() const
 		{
 			return  CurrentPos*bitcapacity;
 		}
@@ -227,7 +235,7 @@ public:
 	}
 	void resizeToRealSize()
 	{
-		tData.resize((getLengthInByte() >> 3) + 1);
+		tData.resize((getLengthInBit() >> 3) + 1);
 		//return CurrentPos;
 	}
 	void SetPos(int size)
@@ -237,35 +245,31 @@ public:
 	UINT64 vectorBit::operator[](int i){
 		return at(i);
 	}
-	UINT64 vectorBit::at(int i){
+	UINT64 vectorBit::at(int i)
+	{
 		if (i < 0 || i >= CurrentPos)
 			return 0;
-		const int TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
-
-
-
-		int currentPosInVectorByte = getLengthInByte() >> 3;
-		int currentPosInByte = getLengthInByte() & 0x7;
-		byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
-		tData[currentPosInVectorByte] = tData[currentPosInVectorByte] | (lowByte << currentPosInByte);
-		//currentPosInByte = 0;
-		currentPosInVectorByte++;
-		input = input >> (8 - currentPosInByte);
-		int i = 8 - currentPosInByte;//i denote the mount of bit pushed into the vector;
-		for (; i < bitcapacity; i += 8)
-		{
-			tData[currentPosInVectorByte++] = input&TheLogicAndNumberArray[8];
-			input = input >> 8;
-		}
-		//currentPosInByte = ((bitcapacity & 0x07) + currentPosInByte) & 0x07;//new 
-
-
-		//int i1 = i >> 3;//
-		//int i2 = i & 0x7;//求8的模
-		//return (tData[i1] >> i2) & 0x01;
-		UINT64 temp;
+		// 0b0,0b1000 000,0b1100 0000,0b1110 0000,0b1111 0000,0b1111 1000,0b1111 1100,0b1111 1110,0b1111 1111
+		//const int GetHighBitArray[] = { 0,0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
+		UINT64 result;
+		int highPosInbit = i*bitcapacity + bitcapacity;
+		int currentPosInVectorByte = (highPosInbit) >> 3;
+		int currentPosInByte = (highPosInbit& 0x7);
+		int Length = ++currentPosInByte;
+		result = (tData[currentPosInVectorByte--]) & TheLogicAndNumberArray[Length];
 		
-		return temp;
+		//currentPosInByte = 0;
+	//	currentPosInVectorByte++;
+		int mountsOfPushIntoResult = Length;//mountsOfPushIntoResult denote the mount of bit pushed into the vector;
+		for (; mountsOfPushIntoResult < bitcapacity; mountsOfPushIntoResult += 8)
+		{
+			int movebitPace = mountsOfPushIntoResult <bitcapacity - 8 ? 8 : bitcapacity - mountsOfPushIntoResult;
+			result = result >> movebitPace;
+			result += (tData[currentPosInVectorByte] >> (8 - movebitPace)) & TheLogicAndNumberArray[movebitPace];
+			--currentPosInVectorByte;
+			mountsOfPushIntoResult += movebitPace;
+		}
+		return 	result;
 	}
 };
 
@@ -318,9 +322,10 @@ public:
 			vectorBitSingle::push_back(0);
 			break;
 		case 1:
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
 			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
+			
 			break;
 		case 2:
 			vectorBitSingle::push_back(0);
@@ -328,14 +333,15 @@ public:
 			vectorBitSingle::push_back(0);
 			break;
 		case 3:
+			
+			vectorBitSingle::push_back(1);
+			vectorBitSingle::push_back(1);
 			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(1);
 			break;
 		case 4:
+			vectorBitSingle::push_back(0);
+			vectorBitSingle::push_back(0);
 			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
 			break;
 		case 5:
 			vectorBitSingle::push_back(1);
@@ -349,9 +355,9 @@ public:
 	int vectorBitHeader::operator[](int i)
 	{
 		int pos = i * 3+3;
-		int result = vectorBitSingle::at(pos++);
-		result = (result << 1) + vectorBitSingle::at(pos--);
-		result = (result << 1) + at(pos++);
+		int result = vectorBitSingle::at(--pos);
+		result = (result << 1) + vectorBitSingle::at(--pos);
+		result = (result << 1) + vectorBitSingle::at(--pos);
 		//result = (result << 1) + vectorBitSingle::at(pos++);
 		return result;
 	}
@@ -1404,7 +1410,7 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 }
 //int main()
 //{
-//	//Todo mainpos
+//	//
 //	vectorBitSingle v,v1,v2;
 //	v.push_back(0);	v.push_back(0);	v.push_back(1);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0); v.push_back(0);	v.push_back(1); v.push_back(0);	v.push_back(1); v.push_back(0);
 //	v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0); v.push_back(0);
@@ -1427,19 +1433,30 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	unsigned int n = 0x84158225;
-	int i = assembly_popcnt(n);
-	bool a = false, b = true;
-	long b1 = 0;
-	b1 = b | (a << 8) | b;
-	printf("%d ,%d\n", sizeof(int), assembly_popcnt(n));
+	clock_t start, end;
+	clock_t startall, endall;
+	double duration;
+	vectorBit<11> test2;
+	UINT64 i = 0x64444;
+	i = (i << 2)-i*4;
+
+	//vector<INT64> test2;
+	start = clock();
+	for (UINT64 i = 0; i < 100000;i++)
+		test2.push_back(i);
+	for (UINT64 i = 2; i < 100000; i++)
+		if(test2.at(i)!=i)
+			printf("%d\n", i);
+	end = clock();
+	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+	printf("durationOF constructBWT %f\n", duration);
+	printf("%d", sizeof(test2));
+	//test2.push_back(0xfed);
 	//Todo mainpos
 //	CFile file;
 	//int a = -15, b = 15;
 	//printf("%d %d\n", a >> 2, (b >> 3) +( (b & 0x7) == 0 ? 0 : 1));
-	clock_t start, end;
-	clock_t startall, endall;
-	double duration;
+	
 	FILE* fp;
 	//vector<unsigned char> alphbetVector,BWTvector;
 	unsigned char* alphbetList = new unsigned char[256];
