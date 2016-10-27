@@ -26,13 +26,19 @@ typedef long long TIME_T;
 #define setbit(x,y) x|=(1<<y) //将X的第Y位置1
 #define clrbit(x,y) x&=~(1<<y) //将X的第Y位清0
 #define CSize 257
-#define SIZE 1024*1024*10
+#define SIZE 1024*1024
+
 #define BSize 64
 #define BRunlength 6
+#define Bmask 0x3f
 #define SBSize 256
 #define SBRunlength 8
+#define SBmask 0xFF;
+// #define BSize 12
+//#define SBSize 36
 using namespace std;
-byte TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
+
+//byte TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
 int assembly_popcnt(unsigned int n)
 {
 #ifdef _MSC_VER /* Intel style assembly */
@@ -120,7 +126,7 @@ public:
 		CurrentPos = size;
 	}
 	int vectorBitSingle::operator[](int i){
-		return tData.at(i);
+		return at(i);
 	}
 	int vectorBitSingle::at(int i){
 		if (i < 0 || i >= CurrentPos)
@@ -131,14 +137,16 @@ public:
 	}
 };
 //the number of bitcapacity must small than 64;
-template <int bitcapacity>
+
 class vectorBit /*:public vectorBitSingle*/
 {
 protected:
 	vector<byte> tData;
+	int bitcapacity=1;
 	int CurrentPos;//denote this is the CurrentPos,th int the vector
-	//int TheLogicAndNumberArray[8] ;
+	int TheLogicAndNumberArray[64] ;
 private:
+	
 	void push_backSingle(bool input)
 	{
 		int currentPosInVectorByte = getLengthInBit() >> 3;//
@@ -151,16 +159,35 @@ private:
 		tData[currentPosInVectorByte] = input ? setbit(tData[currentPosInVectorByte], currentPosInByte) : clrbit(tData[currentPosInVectorByte], currentPosInByte);
 	}
 public:
+	vectorBit() :CurrentPos(0)
+	{
+		for (int i = 0; i < 64; i++)
+			TheLogicAndNumberArray[i] = (1 << i) - 1;
+	}
+	vectorBit(int bitlength) :vectorBit()
+	{
+		//bitcapacity = 1;
+		bitcapacity = bitlength;
+	}
+	void init(int bitlength)
+	{
+		bitcapacity = bitlength;
+	}
+	void init(int bitlength, int vectorsize)
+	{
+		init(bitlength);
+		tData.resize(((getLengthInBit()) >> 3) + 1, 0);
+	}
 	static vectorBit ConstructABit(int value, int length)
 	{
 		//	vectorBitSingle temp;
 		//TheLogicAndNumberArray = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
 	}
-	vectorBit()
+	void reserve(int length)
 	{
-		CurrentPos = 0;
+		tData.reserve(((getLengthInBit()) >> 3) + 1);
 	}
-	vectorBit(int vectorsize) :vectorBit()
+	vectorBit(int bitlength, int vectorsize) :vectorBit(bitlength)
 	{
 		tData.resize(((getLengthInBit()) >> 3) + 1, 0);
 	}
@@ -177,11 +204,15 @@ public:
 	* \param input 0 or 1,the value of this bit
 	*/
 	public:
-		
-
+		inline int  getCorrectLengthInput(int input)
+		{
+			return  input&TheLogicAndNumberArray[bitcapacity];
+		}
 		void  push_back(UINT64 input)
 		{
+			input = getCorrectLengthInput(input);
 			//const int TheLogicAndNumberArray[] = { 0,1,3,7,15,31,63,127,255 };
+			//byte TheLogicAndNumberArray[] = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
 			int currentPosInVectorByte = getLengthInBit() >> 3;
 			int currentPosInByte = getLengthInBit() & 0x7;
 			byte lowByte = input&TheLogicAndNumberArray[8 - currentPosInByte];
@@ -228,6 +259,10 @@ public:
 	{
 		return CurrentPos;
 	}
+	int sizeOfOccupyMemory()
+	{
+		return tData.size();
+	}
 	void resize(unsigned int newSize)
 	{
 		tData.resize(((newSize*bitcapacity) >> 3) + 1);
@@ -255,16 +290,17 @@ public:
 		int highPosInbit = i*bitcapacity + bitcapacity;
 		int currentPosInVectorByte = (highPosInbit) >> 3;
 		int currentPosInByte = (highPosInbit& 0x7);
-		int Length = ++currentPosInByte;
+		int Length = currentPosInByte;
+		int movebitPace = Length > bitcapacity ? Length - bitcapacity : 0;
 		result = (tData[currentPosInVectorByte--]) & TheLogicAndNumberArray[Length];
-		
+		result = result >> movebitPace;
 		//currentPosInByte = 0;
 	//	currentPosInVectorByte++;
 		int mountsOfPushIntoResult = Length;//mountsOfPushIntoResult denote the mount of bit pushed into the vector;
-		for (; mountsOfPushIntoResult < bitcapacity; mountsOfPushIntoResult += 8)
+		for (; mountsOfPushIntoResult < bitcapacity; )
 		{
-			int movebitPace = mountsOfPushIntoResult <bitcapacity - 8 ? 8 : bitcapacity - mountsOfPushIntoResult;
-			result = result >> movebitPace;
+			movebitPace = mountsOfPushIntoResult <bitcapacity - 8 ? 8 : bitcapacity - mountsOfPushIntoResult;
+			result = result << movebitPace;
 			result += (tData[currentPosInVectorByte] >> (8 - movebitPace)) & TheLogicAndNumberArray[movebitPace];
 			--currentPosInVectorByte;
 			mountsOfPushIntoResult += movebitPace;
@@ -284,6 +320,15 @@ public:
 class BaisOperate
 {
 public:
+	static int StupidRank(unsigned char* inarray, int length,unsigned char c,int pos)
+	{
+		pos = length > pos ? pos: length;
+		int icount = 0;
+		for (int i = 0; i < pos;i++)
+			if (inarray[i] == c)
+				icount++;
+		return icount;
+	}
 	static int rank1(vectorBitSingle inarray,int pos)
 	{
 		int count = 0;
@@ -293,6 +338,7 @@ public:
 				count++;
 		return count;
 	}
+
 	static int rank1(vectorBitSingle inarray,int startpos, int mount)
 	{
 		int count = 0;
@@ -307,61 +353,61 @@ public:
 /**
  * \brief Header vector
  */
-class vectorBitHeader :public vectorBitSingle
-{
-public:
-	void push_back(int input)
-	{
-		//int i1 = CurrentPos / 8;
-		//
-		switch (input)
-		{
-		case 0: 
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
-			break;
-		case 1:
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
-			
-			break;
-		case 2:
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(0);
-			break;
-		case 3:
-			
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(0);
-			break;
-		case 4:
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(1);
-			break;
-		case 5:
-			vectorBitSingle::push_back(1);
-			vectorBitSingle::push_back(0);
-			vectorBitSingle::push_back(1);
-			break;
-		default:
-			return;
-		}
-	}
-	int vectorBitHeader::operator[](int i)
-	{
-		int pos = i * 3+3;
-		int result = vectorBitSingle::at(--pos);
-		result = (result << 1) + vectorBitSingle::at(--pos);
-		result = (result << 1) + vectorBitSingle::at(--pos);
-		//result = (result << 1) + vectorBitSingle::at(pos++);
-		return result;
-	}
-};
+//class vectorBitHeader :public vectorBitSingle
+//{
+//public:
+//	void push_back(int input)
+//	{
+//		//int i1 = CurrentPos / 8;
+//		//
+//		switch (input)
+//		{
+//		case 0: 
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(0);
+//			break;
+//		case 1:
+//			vectorBitSingle::push_back(1);
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(0);
+//			
+//			break;
+//		case 2:
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(1);
+//			vectorBitSingle::push_back(0);
+//			break;
+//		case 3:
+//			
+//			vectorBitSingle::push_back(1);
+//			vectorBitSingle::push_back(1);
+//			vectorBitSingle::push_back(0);
+//			break;
+//		case 4:
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(1);
+//			break;
+//		case 5:
+//			vectorBitSingle::push_back(1);
+//			vectorBitSingle::push_back(0);
+//			vectorBitSingle::push_back(1);
+//			break;
+//		default:
+//			return;
+//		}
+//	}
+//	int vectorBitHeader::operator[](int i)
+//	{
+//		int pos = i * 3+3;
+//		int result = vectorBitSingle::at(--pos);
+//		result = (result << 1) + vectorBitSingle::at(--pos);
+//		result = (result << 1) + vectorBitSingle::at(--pos);
+//		//result = (result << 1) + vectorBitSingle::at(pos++);
+//		return result;
+//	}
+//};
 typedef  tuple < int, int, int, int > lookUpTableElement;
 class GAMACode
 {
@@ -401,23 +447,38 @@ public:
 };
 class GamaCompressData
 {
+	typedef  vectorBit vectorBitHeader;
+
 public:
 	vectorBitHeader gamaHeader;
 	vectorBitSingle		gamacode;
-	vector<int>		SBrank;
-	vector<byte>	Brank;
-	vector<int>		SB;
-	vector<byte>	B;
+	vectorBit	SBrank;
+	vectorBit	Brank;
+	vectorBit	SB;
+	vectorBit	B;
 	public:
 	GamaCompressData()
 	{
+		//gamaHeader.init(3);
+		gamaHeader = vectorBitHeader(3);
+
+	};
+	void Init(int bitLength)
+	{
+		int	SbitrunLength = log2(bitLength);
+		int	BbitrunLength = BRunlength;
+		SBrank = vectorBit(SbitrunLength);
+		SB = vectorBit(SbitrunLength);
+		B = vectorBit(SbitrunLength);
+		Brank = vectorBit(SbitrunLength);
 		SBrank.push_back(0);
 		Brank.push_back(0);
 		SB.push_back(0);
 		B.push_back(0);
-	};
+	}
 	void CreateDate(vectorBitSingle& inarray)
-	{		
+	{	
+		Init(inarray.size());
 		GAMACode gama;
 		gamacode.resize(inarray.size());
 		gamaHeader.resize((inarray.size() << 1) + inarray.size());
@@ -425,15 +486,16 @@ public:
 		int i;
 		int ranktemp;
 		int SBrank_s = 0, SB_s = 0, Brank_s = 0, B_s = 0, SBrank_s_pre = 0, SB_s_pre =0 ;
-		int sbLength = inarray.size() >> SBRunlength;
+		//int sbLength = inarray.size() >> SBRunlength;
+		int sbLength = inarray.size() / SBSize;
 		SBrank.reserve(sbLength);
 		SB.reserve(sbLength);
-		int bLength = inarray.size() >> BRunlength;
+		//int bLength = inarray.size() >> BRunlength;
+		int bLength = inarray.size() / BSize;
 		Brank.reserve(bLength);
 		B.reserve(bLength);
 		for (i = 0; i < inarray.size(); )
 		{
-			
 			vectorBitSingle bitetemp(BSize);
 			//bitetemp.resize(BSize);
 			GAMACode::HEADERTYPE headtemp;
@@ -455,7 +517,9 @@ public:
 
 //			AtlTrace("%d\n", Brank_s);
 			i += BSize;
-			if (i>>SBRunlength != 0)
+			//(pos + 1) & Bmask
+			int temp = i&SBmask;
+			if (temp != 0)
 			{
 				Brank.push_back(Brank_s - SBrank_s_pre);
 				B.push_back(B_s - SB_s_pre);
@@ -473,6 +537,7 @@ public:
 			SBrank_s += ranktemp;
 			SB_s += ranktemp;	
 		}
+		ResizeToRealsize();
 		AtlTrace("beforeCompress-length:%d,afterCompress-length:%d\n", inarray.size()>>3, GetSize());
 	}
 	void ResizeToRealsize()
@@ -480,9 +545,9 @@ public:
 		gamacode.resizeToRealSize();
 		gamaHeader.resizeToRealSize();
 	}
-	int GetSize() const
+	int GetSize() 
 	{
-		return (gamaHeader.size() >> 3) + (gamacode.size() >> 3) + SBrank.size() + Brank.size()+SB.size()+B.size();
+		return (gamaHeader.sizeOfOccupyMemory()) + (gamacode.size() >> 3) + SBrank.sizeOfOccupyMemory() + Brank.sizeOfOccupyMemory() + SB.sizeOfOccupyMemory() + B.sizeOfOccupyMemory();
 	}
 };
 //class waveletTreeNodeByBit_C
@@ -643,6 +708,7 @@ public:
 	///前pos个字符串中字符c的个数
 	int Rank(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/) const
 	{
+		AtlTrace("Start Rank: now pos =%d\n", pos);
 		waveletTreeNodeByBit* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
@@ -651,22 +717,28 @@ public:
 		while (nodetemp->l != nullptr)
 		{
 			//Divedepos = i;
+
 			if (nodetemp->allist[c] == 0)
-			{
+			{				
 				ipos = ipos - rank1(nodetemp->tData, ipos);
+				AtlTrace("lnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->l;
 			}
 			else
 			{
+				
 				ipos = rank1(nodetemp->tData, ipos);
+				AtlTrace("rnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->r;
 			}
 		}
+		AtlTrace("End Rank\n");
 		return ipos;
 
 	}
 	int RankOFGama(const unsigned char c, const int& pos/*, const vector<unsigned char> alphbetList*/) const
 	{
+		AtlTrace("Start RankOFGama:now pos =%d\n", pos);
 		waveletTreeNodeByBit* nodetemp = root;
 		if (!ContainChar(nodetemp->allist, c))
 			return -1;
@@ -677,24 +749,30 @@ public:
 			//Divedepos = i;
 			if (nodetemp->allist[c] == 0) //c is 0
 			{
-				ipos = ipos - rankOfCurrentGama(nodetemp->GamaData, ipos);
+				
+				ipos = ipos - rankOfCurrentGama(nodetemp->GamaData, ipos-1);
+				AtlTrace("lnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->l;
 			}
 			else//c is 1
 			{
-				ipos = rankOfCurrentGama(nodetemp->GamaData, ipos);
+				
+				ipos = rankOfCurrentGama(nodetemp->GamaData, ipos-1);
+				AtlTrace("rnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->r;
 			}
 		}
+		AtlTrace("End RankOFGama\n");
 		return ipos;
 
 	}
 	static int rankOfCurrentGama(GamaCompressData& GamaData,const int& pos /*, const vector<unsigned char> alphbetList*/)
 	{
 		//waveletTreeNodeByBit* nodetemp = root;
+		                       
 		int offset =GamaData.SB[(pos + 1) / SBSize] + GamaData.B[(pos + 1) / BSize];
 		int header = GamaData.gamaHeader[(pos + 1) / BSize];
-		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) >> BRunlength);
+		int rankresult = GamaData.SBrank[(pos + 1) / SBSize] + GamaData.Brank[(pos + 1) / BSize] + lrank(GamaData.gamacode, offset, header, (pos + 1) & Bmask );
 		return  rankresult;
 	}
 	static int lrank(vectorBitSingle s, int offset, int headertype, int mount) 
@@ -784,7 +862,17 @@ public:
 		}
 		return postCur - 1;
 	}
+	static int calculateGamaCodeSize(waveletTreeNodeByBit& wt)
+	{
+		int count = 0;
+		if (wt.l != nullptr)	
+			count = calculateGamaCodeSize(*wt.l) + calculateGamaCodeSize(*wt.r);
 
+		
+		count += wt.GamaData.GetSize();
+
+		return count;
+	}
 	static int rank1(vectorBitSingle L, int pos)
 	{
 		int icount = 0;
@@ -1426,45 +1514,36 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 //	gamacode.CreateDate(v);
 //	for (int i = 0; i < 84; i++)
 //	{
-//		int r = waveletTreeByBit::rankOfCurrentGama(i, gamacode);
-//		AtlTrace("Rank(%d) =  %d \n", i,r);
+//	//	int r = waveletTreeByBit::rankOfCurrentGama(i, gamacode);
+//	//	AtlTrace("Rank(%d) =  %d \n", i,r);
 //	}
 //}
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	vectorBit bit(15);
+	//bit.push_back(10);
+	//bit.push_back(10);
+	for (int t = 0; t < 1024;t++)
+	{
+		bit.push_back(t);
+	}
+	for (int t =0; t < 1024; t++)
+	{
+		if (bit.at(t) != (t))
+			printf("bit[%d] is  wrong! bit.at(t)  = %d\n", t, bit.at(t));
+	}
 	clock_t start, end;
 	clock_t startall, endall;
 	double duration;
-	vectorBit<11> test2;
-	UINT64 i = 0x64444;
-	i = (i << 2)-i*4;
-
-	//vector<INT64> test2;
-	start = clock();
-	for (UINT64 i = 0; i < 100000;i++)
-		test2.push_back(i);
-	for (UINT64 i = 2; i < 100000; i++)
-		if(test2.at(i)!=i)
-			printf("%d\n", i);
-	end = clock();
-	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-	printf("durationOF constructBWT %f\n", duration);
-	printf("%d", sizeof(test2));
-	//test2.push_back(0xfed);
-	//Todo mainpos
-//	CFile file;
-	//int a = -15, b = 15;
-	//printf("%d %d\n", a >> 2, (b >> 3) +( (b & 0x7) == 0 ? 0 : 1));
-	
 	FILE* fp;
 	//vector<unsigned char> alphbetVector,BWTvector;
 	unsigned char* alphbetList = new unsigned char[256];
 	int* CTable = new int[CSize];
 	int posOfend;
 	//unsigned char* T = new unsigned char[21]{'a','s','a','k','a','k','r','h','a','k','a','k','r','h','a','k','a','s','a','k','#'};
-	const char* strpath = "E:\\测试数据\\测试数据\\normal\\world_leaders";
-	//TCHAR* strpath = _T("E:\\测试数据\\测试数据\\normal\\english");
+	const char* strpath = "E:\\测试数据\\测试数据\\normal\\\para";
+	//TCHAR* strpath = _T("E:\\测试数据\\测试数据\\english");
 	errno_t err;
 	//err = fopen_s(&fp, strpath, "r");
 	if (fopen_s(&fp, strpath, "r"))
@@ -1524,31 +1603,21 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("durationOF CounstructWaveletTree %f\n", duration);
 	duration = static_cast<double>(endall - startall) / CLOCKS_PER_SEC;
 	printf("durationOF ALlProcess %f\n", duration);
-	/*for (int i = 0; i < length; i++)
-	{
-		std::cout << BWT[i] << ",";
-	}
-	std::cout << endl; std::cout << endl;
-
-	for (int i = 0; i < length; i++)
-	{
-		std::cout << tree->Access(i) << ",";
-	}
-	std::cout << endl;
-	std::cout << tree->Rank('A', 13);
-	std::cout << endl;
-	std::cout << tree->Select('C', 10);
-	std::cout << endl;*/
-//	tree->destory(tree->getRoot(), NULL);
 	auto node = tree->getRoot();
-	/*for (int i = 0; i < size;i++)
-	{
-		if (tree->Rank(a, i) != tree->RankOFGama(a, i))
-			AtlTrace("%d\n",i);
-	}*/
-	//ranktest
-	//tree.ra
-
+	
+	int size1 = waveletTreeByBit::calculateGamaCodeSize(*node);
+	duration = static_cast<double>(size1 / length);
+	printf("durationOF ALlProcess %f\n", duration);
+	double per = static_cast<double>(size1) / static_cast<double>(length);
+	printf("new size is  %d\n,old is %d\n,%f\n", size1, length, per);
+ //	for (int i = 219; i < size;i++)
+	//{
+	//	int stupid = BaisOperate::StupidRank(BWT, length, 'a', i);
+	//	int gama = tree->RankOFGama('a', i);
+	//	int wavelet = tree->Rank('a', i);
+	//	if (stupid != gama)
+	//		AtlTrace("pos:%d\n,stupid:%d,gamarank:%d", i, stupid, gama);
+	//}
 	return 0;
 }
 
