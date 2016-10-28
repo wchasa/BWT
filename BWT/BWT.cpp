@@ -29,11 +29,24 @@ typedef long long TIME_T;
 #define SIZE 1024*1024
 
 #define BSize 64
-#define BRunlength 6
-#define Bmask 0x3f
+//#define BRunlength 6
+//#define Bmask 0x3f
 #define SBSize 256
-#define SBRunlength 8
-#define SBmask 0xFF;
+//#define SBRunlength 8
+//#define SBmask 0xFF;
+//
+//#define BSize 12
+//#define SBSize 36
+////#define BRunlength 4
+////#define Bmask 0x0f
+//
+//#define SBRunlength 6
+//#define SBmask 0x3F;
+
+const int BRunlength = ceil(log2(BSize));
+const int Bmask = (1 << BRunlength) - 1;
+const int SBRunlength = ceil(log2(SBSize));
+const int SBmask = (1 << SBRunlength) - 1;
 // #define BSize 12
 //#define SBSize 36
 using namespace std;
@@ -55,11 +68,11 @@ protected:
 	vector<byte> tData;
 	int CurrentPos;
 public:
-	static vectorBitSingle ConstructABit(int value, int length)
-	{
-	//	vectorBitSingle temp;
+	//static vectorBitSingle ConstructABit(int value, int length)
+	//{
+	////	vectorBitSingle temp;
 
-	}
+	//}
 	vectorBitSingle()
 	{
 		CurrentPos = 0;
@@ -159,6 +172,10 @@ private:
 		tData[currentPosInVectorByte] = input ? setbit(tData[currentPosInVectorByte], currentPosInByte) : clrbit(tData[currentPosInVectorByte], currentPosInByte);
 	}
 public:
+	int getbitcapacity()
+	{
+		return  bitcapacity;
+	}
 	vectorBit() :CurrentPos(0)
 	{
 		for (int i = 0; i < 64; i++)
@@ -178,11 +195,11 @@ public:
 		init(bitlength);
 		tData.resize(((getLengthInBit()) >> 3) + 1, 0);
 	}
-	static vectorBit ConstructABit(int value, int length)
-	{
-		//	vectorBitSingle temp;
-		//TheLogicAndNumberArray = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
-	}
+	//static vectorBit ConstructABit(int value, int length)
+	//{
+	//	//	vectorBitSingle temp;
+	//	//TheLogicAndNumberArray = { 0, 1, 3, 7, 15, 31, 63, 127, 255 };
+	//}
 	void reserve(int length)
 	{
 		tData.reserve(((getLengthInBit()) >> 3) + 1);
@@ -316,9 +333,10 @@ public:
  */
 
 
-
+int ranksize = 0;;
 class BaisOperate
 {
+	//todo rank need to change to popcount
 public:
 	static int StupidRank(unsigned char* inarray, int length,unsigned char c,int pos)
 	{
@@ -331,6 +349,7 @@ public:
 	}
 	static int rank1(vectorBitSingle inarray,int pos)
 	{
+		ranksize = ranksize < inarray.size() ? inarray.size() : ranksize;
 		int count = 0;
 		pos = pos < inarray.size() ? pos : inarray.size();
 		for (int i = 0; i < pos; i++)
@@ -339,8 +358,9 @@ public:
 		return count;
 	}
 
-	static int rank1(vectorBitSingle inarray,int startpos, int mount)
+	static int rank1(vectorBitSingle& inarray,int startpos, int mount)
 	{
+		ranksize = ranksize < inarray.size() ? inarray.size() : ranksize;
 		int count = 0;
 		int endpos = startpos + mount;
 		endpos = endpos < inarray.size() ? endpos : inarray.size();
@@ -348,6 +368,16 @@ public:
 			if (inarray[i] == 1)
 				count++;
 		return count;
+	}
+	static int rank1(unsigned char* L, int pos)
+	{
+		int icount = 0;
+		for (int i = 0; i < pos; i++)
+		{
+			if (L[i] == L[pos])
+				icount++;
+		}
+		return icount;
 	}
 };
 /**
@@ -451,17 +481,16 @@ class GamaCompressData
 
 public:
 	vectorBitHeader gamaHeader;
-	vectorBitSingle		gamacode;
-	vectorBit	SBrank;
-	vectorBit	Brank;
-	vectorBit	SB;
-	vectorBit	B;
-	public:
+	vectorBitSingle	gamacode;
+	vectorBit		SBrank;
+	vectorBit		Brank;
+	vectorBit		SB;
+	vectorBit		B;
+public:
 	GamaCompressData()
 	{
 		//gamaHeader.init(3);
 		gamaHeader = vectorBitHeader(3);
-
 	};
 	void Init(int bitLength)
 	{
@@ -476,12 +505,41 @@ public:
 		SB.push_back(0);
 		B.push_back(0);
 	}
+
+	bool IsSuperBlock(int pos)
+{
+		int temp;
+		//if(assembly_popcnt(pos)==1)
+		//	temp = pos&SBmask;
+		//else 
+		//	temp = pos%SBSize; 
+		int i = assembly_popcnt(pos);
+		temp = pos & SBmask;
+		if (i==1)
+			return temp;
+		else
+			temp = (pos%SBSize);
+		return temp;
+}
+	void allocatMemeryForVectors(int i)
+	{
+		int SBlength = i / SBSize;
+		int Blength = i / BSize;
+		SBrank.resize(SBlength);
+		SB.resize(SBlength);
+		Brank.resize(Blength);
+		B.resize(Blength);
+		gamacode.resize(i);
+		gamaHeader.resize(i);
+	}
 	void CreateDate(vectorBitSingle& inarray)
 	{	
 		Init(inarray.size());
+		allocatMemeryForVectors(inarray.size());
 		GAMACode gama;
-		gamacode.resize(inarray.size());
-		gamaHeader.resize((inarray.size() << 1) + inarray.size());
+		//gamaHeader;
+		//gamacode;
+		
 		gama.GenerateGamaCodeToBitVector();
 		int i;
 		int ranktemp;
@@ -491,11 +549,12 @@ public:
 		SBrank.reserve(sbLength);
 		SB.reserve(sbLength);
 		//int bLength = inarray.size() >> BRunlength;
-		int bLength = inarray.size() / BSize;
-		Brank.reserve(bLength);
-		B.reserve(bLength);
+		//int bLength = inarray.size() / BSize;
+		//Brank.reserve(bLength);
+		//B.reserve(bLength);
 		for (i = 0; i < inarray.size(); )
 		{
+			//AtlTrace("%d,", i);
 			vectorBitSingle bitetemp(BSize);
 			//bitetemp.resize(BSize);
 			GAMACode::HEADERTYPE headtemp;
@@ -512,14 +571,15 @@ public:
 			else if (headtemp == GAMACode::ALL0)
 				ranktemp = 0;
 			else
+				//todo need to change
 				ranktemp = BaisOperate::rank1(inarray, i, BSize);
 			Brank_s = ranktemp + Brank_s;
 
 //			AtlTrace("%d\n", Brank_s);
 			i += BSize;
 			//(pos + 1) & Bmask
-			int temp = i&SBmask;
-			if (temp != 0)
+			
+			if (IsSuperBlock(i) != 0)
 			{
 				Brank.push_back(Brank_s - SBrank_s_pre);
 				B.push_back(B_s - SB_s_pre);
@@ -533,7 +593,6 @@ public:
 				SB.push_back(B_s);
 				B.push_back(B_s - SB_s_pre);
 			}
-				
 			SBrank_s += ranktemp;
 			SB_s += ranktemp;	
 		}
@@ -544,6 +603,10 @@ public:
 	{
 		gamacode.resizeToRealSize();
 		gamaHeader.resizeToRealSize();
+		SBrank.resizeToRealSize();
+		Brank.resizeToRealSize();
+		SB.resizeToRealSize();
+		B.resizeToRealSize();
 	}
 	int GetSize() 
 	{
@@ -687,7 +750,7 @@ public:
 		{
 			if (nodetemp->tData[ipos] == 0)
 			{
-				ipos = ipos - rank1(nodetemp->tData, ipos);
+				ipos = ipos - BaisOperate::rank1(nodetemp->tData, ipos);
 				if (nodetemp->l != nullptr)
 					nodetemp = nodetemp->l;
 				else
@@ -695,7 +758,7 @@ public:
 			}
 			else
 			{
-				ipos = rank1(nodetemp->tData, ipos);
+				ipos = BaisOperate::rank1(nodetemp->tData, ipos);
 				if (nodetemp->r != nullptr)
 					nodetemp = nodetemp->r;
 				else
@@ -720,14 +783,14 @@ public:
 
 			if (nodetemp->allist[c] == 0)
 			{				
-				ipos = ipos - rank1(nodetemp->tData, ipos);
+				ipos = ipos - BaisOperate::rank1(nodetemp->tData, ipos);
 				AtlTrace("lnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->l;
 			}
 			else
 			{
 				
-				ipos = rank1(nodetemp->tData, ipos);
+				ipos = BaisOperate::rank1(nodetemp->tData, ipos);
 				AtlTrace("rnode,:now pos =%d\n", ipos);
 				nodetemp = nodetemp->r;
 			}
@@ -785,7 +848,7 @@ public:
 		switch (headertype)
 		{
 		case GAMACode::Plain:
-			return rank1(s, offset, offset + mount);
+			return BaisOperate::rank1(s, offset, offset + mount);
 		case GAMACode::RLG0:
 		case GAMACode::RLG1:
 			//int count0 = 0;
@@ -873,7 +936,7 @@ public:
 
 		return count;
 	}
-	static int rank1(vectorBitSingle L, int pos)
+/*	static int rank1(vectorBitSingle L, int pos)
 	{
 		int icount = 0;
 		for (int i = 0; i < (pos<L.size() ? pos : L.size()); i++)
@@ -894,6 +957,7 @@ public:
 		return icount;
 	}
 	//}
+*/
 	void destory(waveletTreeNodeByBit* child, waveletTreeNodeByBit* parent)
 	{
 		if (!child) return;
@@ -1413,23 +1477,14 @@ void da(unsigned char  *r, int *sa, int n, int m)
 	delete[] y;
 	return;
 }
-int rank1(unsigned char* L,int pos)
-{
-	int icount = 0;
-	for (int i = 0; i < pos;i++)
-	{
-		if (L[i] == L[pos])
-			icount++;
-	}
-	return icount;
-}
+
 void computerLF(int* C,unsigned char* L,int* LF,int length)
 {
 	int i;
 	LF[0] = C[L[0]];
 	for (i = 0; i < length;i++)
 	{
-		LF[i] = (C[L[i]] + rank1(L, i))%length;
+		LF[i] = (C[L[i]] +BaisOperate::rank1(L, i))%length;
 	}
 }
 int constructBWT(unsigned char*T, vector<unsigned char> *L, int length)
@@ -1512,6 +1567,7 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 //	GAMACode::Decode(v1, head, v2,12);*/
 //	GamaCompressData gamacode;
 //	gamacode.CreateDate(v);
+//	AtlTrace("new size  =  %d \n", gamacode.GetSize());
 //	for (int i = 0; i < 84; i++)
 //	{
 //	//	int r = waveletTreeByBit::rankOfCurrentGama(i, gamacode);
@@ -1521,6 +1577,7 @@ unsigned char access(waveletTreeByBit& tree, int pos, vector<unsigned char> alph
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	
 	vectorBit bit(15);
 	//bit.push_back(10);
 	//bit.push_back(10);
@@ -1553,7 +1610,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	// ReSharper disable once CppEntityNeverUsed
 	err = fseek(fp, 0L, SEEK_END);
-
+	
 	long size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	size = size < SIZE ? size : SIZE;
@@ -1561,7 +1618,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// ReSharper disable once CppEntityNeverUsed
 	long count = fread(list,sizeof(char), size,fp);
 	//unsigned char* inarray = new int[size];
-
+	printf("File Name ;%s,\nFile Size :%d M\n", strpath, count / 1024 / 1024);
 	//unsigned char* list = new unsigned char[size];
 	vector<unsigned char> Tvector;
 	unsigned char* T2 = new unsigned char[size];
@@ -1578,17 +1635,17 @@ int _tmain(int argc, _TCHAR* argv[])
 	constructC(list, CTable, length);
 	end = clock();
 	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-	printf("durationOF constructC %f\n", duration);
+	//printf("durationOF constructC %f\n", duration);
 	start = clock();
 	//computerLF(CTable, BWT, LF, length);
 	end = clock();
 	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-	printf("durationOF computerLF %f\n", duration);
+//	printf("durationOF computerLF %f\n", duration);
 	start = clock();
 	//ReconstructT(BWT, LF, posOfend, T2,length);
 	end = clock();
 	duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-	printf("durationOF ReconstructT %f\n", duration);
+	//printf("durationOF ReconstructT %f\n", duration);
 	int alCount = Calcdelt(list, alphbetList, length);
 	quick_sort(alphbetList, 0, alCount-1);
 //	waveletTree* tree = new waveletTree(alCount);
@@ -1610,6 +1667,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("durationOF ALlProcess %f\n", duration);
 	double per = static_cast<double>(size1) / static_cast<double>(length);
 	printf("new size is  %d\n,old is %d\n,%f\n", size1, length, per);
+	printf(" ranksize =%d", ranksize);
  //	for (int i = 219; i < size;i++)
 	//{
 	//	int stupid = BaisOperate::StupidRank(BWT, length, 'a', i);
@@ -1618,6 +1676,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//	if (stupid != gama)
 	//		AtlTrace("pos:%d\n,stupid:%d,gamarank:%d", i, stupid, gama);
 	//}
+	
 	return 0;
 }
 
